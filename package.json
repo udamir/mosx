@@ -1,0 +1,38 @@
+{
+  "name": "mosx",
+  "version": "0.7.1",
+  "description": "Multiview observable state tree",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "patch": "tsc && npm version patch",
+    "major": "tsc && npm version major",
+    "minor": "tsc && npm version minor",
+    "build": "tsc",
+    "test": "jest --verbose"
+  },
+  "author": "Damir Yusipov",
+  "license": "MIT",
+  "dependencies": {
+    "mobx": "^5.15.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.0",
+    "jest": "^26.0.1",
+    "ts-jest": "^26.1.0",
+    "ts-node": "^8.10.2",
+    "tslint": "^6.1.2",
+    "typescript": "^3.9.5"
+  },
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ]
+  }
+}
