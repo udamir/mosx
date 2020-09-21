@@ -1,5 +1,5 @@
 # MosX 
-Multiview observable management engine based on [MobX](https://mobx.js.org/README.html).
+Multiview observable state management engine based on [MobX](https://mobx.js.org/README.html).
 
 ## MosX provides to you:
 - Observable state with concept of a living tree
