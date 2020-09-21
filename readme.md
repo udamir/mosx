@@ -23,7 +23,7 @@ npm install
 
 To run the MagX server, run ```npm start```
 
-### Build basic state for MagX server from scratch
+### Build basic state from scratch
 
 1. Install magx and mosx packages:
 ```
