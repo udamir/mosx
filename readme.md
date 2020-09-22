@@ -1,5 +1,7 @@
 # MosX 
-Multiview observable state management engine based on [MobX](https://mobx.js.org/README.html).
+<img alt="npm" src="https://img.shields.io/npm/v/mosx"> <img alt="npm" src="https://img.shields.io/npm/dm/mosx?label=npm"> <img alt="GitHub" src="https://img.shields.io/github/license/udamir/mosx">
+
+Multiview observable state management engine based on [MobX](https://mobx.js.org/README.html)
 
 ## MosX provides to you:
 - Observable state with concept of a living tree
@@ -14,7 +16,6 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 ### From examples project
 
 The easiest way to try out MosX is using the magx-example:
-
 ```
 git clone https://github.com/udamir/magx-examples.git
 cd magx-examples
@@ -95,3 +96,7 @@ console.log(snapshot)
 
 // { players: { 'Player 1': { x: 127, y: 343 } } }
 ```
+
+## License
+
+MIT
