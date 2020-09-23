@@ -1,4 +1,6 @@
 # MosX 
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fudamir%2Fmosx.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fudamir%2Fmosx?ref=badge_shield)
+
 <img alt="npm" src="https://img.shields.io/npm/v/mosx"> <img alt="npm" src="https://img.shields.io/npm/dm/mosx?label=npm"> <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/udamir/mosx/master?token=af6cb1791c99dfb47ce0b39b3269c0433f9a10b7"> <img alt="GitHub" src="https://img.shields.io/github/license/udamir/mosx">
 
 Multiview observable state management engine based on [MobX](https://mobx.js.org/README.html)
@@ -100,3 +102,6 @@ console.log(snapshot)
 ## License
 
 MIT
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fudamir%2Fmosx.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fudamir%2Fmosx?ref=badge_large)
