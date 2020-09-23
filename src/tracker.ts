@@ -139,40 +139,39 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       const nowVisible = this.tagExist(change.newValue, tags)
       if (wasVisible === nowVisible) { continue }
 
-      if (entry.hidden) {
-        if (filter.size && !filter.has("replace")) { continue }
-        // handle private objects
-        const value = nowVisible && snapshot(object, { tags })
-        const patch: IReversibleJsonPatch = { op: "replace", path, value }
-        if (reversible) {
-          patch.oldValue = snapshot(object, { tags, objTags: change.oldValue })
-        }
-        // save patched object
-        patchedObjects.push(object)
-        listener(patch, object, this.root)
-      } else {
-        path = path.slice(-1) !== "/" ? path + "/" : path
+      const changedObjects: Array<{ op: JsonPatchOp, path: string, object: any }> = []
 
+      if (entry.hidden) {
+        // handle private object
+        if (filter.size && !filter.has("replace")) { continue }
+        changedObjects.push({ op: "replace", path, object })
+      } else {
+        // handle private properties
         const op = nowVisible ? "add" : "remove"
         if (filter.size && !filter.has(op)) { continue }
 
-        // patch for each private property
+        path = path.slice(-1) !== "/" ? path + "/" : path
         for (const prop of props) {
-          const patch: IReversibleJsonPatch = { op, path: path + prop.key }
-          const obj = (object as any)[prop.key]
-
-          if (nowVisible) {
-            patch.value = snapshot(obj, { tags })
-          } else {
-            patch.oldValue = snapshot(obj, { tags, objTags: change.oldValue })
-          }
-
-          // save patched object
-          if (obj instanceof Mosx) {
-            patchedObjects.push(obj)
-          }
-          listener(patch, obj, this.root)
+          changedObjects.push({ op, path: path + prop.key, object: (object as any)[prop.key] })
         }
+      }
+
+      for (const changedObject of changedObjects) {
+        // create patch for each changed object/property
+        const patch: IReversibleJsonPatch = {
+          op: changedObject.op,
+          path: changedObject.path,
+          value: nowVisible && snapshot(changedObject.object, { tags })
+        }
+        if (reversible) {
+          patch.oldValue = wasVisible && snapshot(changedObject.object, { tags, objTags: change.oldValue })
+        }
+
+        // save patched object
+        if (changedObject.object instanceof Mosx) {
+          patchedObjects.push(changedObject.object)
+        }
+        listener(patch, changedObject.object, this.root)
       }
     }
   }
@@ -192,8 +191,12 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const value = snapshot(change.newValue, { tags })
-      const patch: IJsonPatch = { op: "add", path: path + change.name, value }
+      const patch: IJsonPatch = {
+        op: "add",
+        path: path + change.name,
+        value: snapshot(change.newValue, { tags })
+      }
+
       listener(patch, change.object, this.root)
     }
   }
@@ -209,7 +212,6 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     // ignore observable properies
     if (parent.meta && !props.find((prop) => prop.key === key)) { return }
-    // if (!props.find((prop) => prop.key === key)) { return }
     const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
 
     for (const { listener, tags, reversible, filter } of this.listeners.values()) {
@@ -217,8 +219,12 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       // check if object and field are visible for listener
       if (hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const value = snapshot(change.newValue, { tags })
-      const patch: IReversibleJsonPatch = { op: "replace", path: path + key, value }
+      const patch: IReversibleJsonPatch = {
+        op: "replace",
+        path: path + key,
+        value: snapshot(change.newValue, { tags }),
+      }
+
       if (reversible) {
         patch.oldValue = snapshot(change.oldValue, { tags })
       }
@@ -319,12 +325,13 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
   private observeRecursively(node: any, parent: IEntry | undefined, path: string): IEntry | undefined {
     if (!this.isRecursivelyObservable(node)) { return }
 
-    const entity = this.entrySet.get(node)
-    if (entity) {
-      if (entity.parent === parent && entity.path === path) { return entity }
-      throw new Error(`The same observable object cannot appear twice in the same tree,` +
-                      ` trying to assign it to '${this.buildPath(parent)}/${path}',` +
-                      ` but it already exists at '${this.buildPath(entity.parent)}/${entity.path}'`)
+    let entry = this.entrySet.get(node)
+    if (entry) {
+      if (entry.parent !== parent || entry.path !== path) {
+        throw new Error(`The same observable object cannot appear twice in the same tree,` +
+                        ` trying to assign it to '${this.buildPath(parent)}/${path}',` +
+                        ` but it already exists at '${this.buildPath(entry.parent)}/${entry.path}'`)
+      }
     } else {
       // observe node
       const dispose = mobx.observe(node, (change: IChange) => {
@@ -342,7 +349,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       const tags: string[] = Array.from(Mosx.getTags(node) || parent && parent.tags || [])
 
       // store endtry
-      const entry: IEntry = { parent, path, dispose, meta, hidden, tags }
+      entry = { parent, path, dispose, meta, hidden, tags }
       this.entrySet.set(node, entry)
 
       // add default parent (root) to mosx object tagsTree
@@ -353,8 +360,8 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       mobx.entries(node).forEach(([key, value]) => {
         this.observeRecursively(value, entry, key)
       })
-      return entry
     }
+    return entry
   }
 
   private unobserveRecursively(node: any) {
