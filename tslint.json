@@ -12,7 +12,8 @@
       "max-classes-per-file": false,
       "variable-name": false,
       "member-ordering": false,
-      "array-type": false
+      "array-type": false,
+      "no-bitwise": false
   },
   "jsRules": {
       "max-line-length": {

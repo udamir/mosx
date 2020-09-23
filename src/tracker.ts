@@ -28,7 +28,7 @@ export interface IMTrackerParams extends IMosxSnapshotParams {
 }
 
 export interface IMosxTracker<T> {
-  onPatch: (listner: MosxPatchListener<T>, params?: IMTrackerParams) => IDisposer
+  onPatch: (listener: MosxPatchListener<T>, params?: IMTrackerParams) => IDisposer
   snapshot(params?: IMosxSnapshotParams): { [key: string]: any }
   dispose(): void
 }
@@ -54,17 +54,17 @@ interface IEntry {
   tags: string[]
 }
 
-interface IListner<T> {
-  listner: MosxPatchListener<T>
+interface IListener<T> {
+  listener: MosxPatchListener<T>
   filter: Set<JsonPatchOp>
   tags: string[]
   reversible: boolean
-  spy?: boolean // TODO: add spy logic
+  spy?: boolean // TODO: add spy logic for monitoring
 }
 
 export class MosxTracker<T = any> implements IMosxTracker<T> {
   private lastId: number = 0
-  private listners: Map<string, IListner<T>> = new Map<string, IListner<T>>()
+  private listeners: Map<string, IListener<T>> = new Map<string, IListener<T>>()
   private patchedObjects: Map<MosxPatchListener<T>, any[]> = new Map<MosxPatchListener<T>, any[]>()
   public entrySet = new WeakMap<any, IEntry>()
   public root: T
@@ -77,7 +77,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.observeRecursively(this.root, undefined, "")
   }
 
-  public onPatch(listner: MosxPatchListener<T>, params: IMTrackerParams = {}): IDisposer {
+  public onPatch(listener: MosxPatchListener<T>, params: IMTrackerParams = {}): IDisposer {
     let { tags = [], filter = [] } = params
     const { reversible = false, spy = false } = params
 
@@ -85,9 +85,9 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     tags = Array.isArray(tags) ? tags : [tags]
 
     const id = "" + this.lastId++
-    this.listners.set(id, { listner, filter: new Set(filter), tags, reversible, spy })
+    this.listeners.set(id, { listener, filter: new Set(filter), tags, reversible, spy })
 
-    return () => { this.listners.delete(id) }
+    return () => { this.listeners.delete(id) }
   }
 
   public dispose() {
@@ -102,6 +102,11 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     return Mosx.getSnapshot(this.root, params && params.tags)
   }
 
+  public tagExist(entryTags?: Set<string> | string[], tags: string[] = []) {
+    const tagsArr = entryTags ? [...entryTags] : []
+    return !!tagsArr.find((tag) => !!~tags.indexOf(tag))
+  }
+
   public tagChange(object: any, change: ITagsChange) {
     const entry = this.entrySet.get(object)
     if (!entry) { return }
@@ -114,12 +119,12 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     if (!props.length && !entry.hidden) { return }
 
-    for (const { listner, tags, reversible, filter } of this.listners.values()) {
-      // check if listners already got this patch
-      let patchedObjects = this.patchedObjects.get(listner)
+    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+      // check if listeners already got this patch
+      let patchedObjects = this.patchedObjects.get(listener)
       if (!patchedObjects) {
         patchedObjects = []
-        this.patchedObjects.set(listner, patchedObjects)
+        this.patchedObjects.set(listener, patchedObjects)
       } else {
         let alreadyPatched = false
         for(const parent of patchedObjects) {
@@ -130,21 +135,21 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       }
 
       // check if update needed
-      const wasVisible = [...(change.oldValue || [])].find((tag) => tags.indexOf(tag) >= 0)
-      const nowVisible = [...change.newValue].find((tag) => tags.indexOf(tag) >= 0)
-      if (!!wasVisible === !!nowVisible) { continue }
+      const wasVisible = this.tagExist(change.oldValue, tags)
+      const nowVisible = this.tagExist(change.newValue, tags)
+      if (wasVisible === nowVisible) { continue }
 
       if (entry.hidden) {
         if (filter.size && !filter.has("replace")) { continue }
         // handle private objects
-        const value = !nowVisible ? undefined : snapshot(object, { tags })
+        const value = nowVisible && snapshot(object, { tags })
         const patch: IReversibleJsonPatch = { op: "replace", path, value }
         if (reversible) {
           patch.oldValue = snapshot(object, { tags, objTags: change.oldValue })
         }
         // save patched object
         patchedObjects.push(object)
-        listner(patch, object, this.root)
+        listener(patch, object, this.root)
       } else {
         path = path.slice(-1) !== "/" ? path + "/" : path
 
@@ -166,7 +171,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
           if (obj instanceof Mosx) {
             patchedObjects.push(obj)
           }
-          listner(patch, obj, this.root)
+          listener(patch, obj, this.root)
         }
       }
     }
@@ -178,118 +183,122 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.processChange(change, entry)
   }
 
+  private processAddChange(change: IChange, parent: IEntry, path: string) {
+    if (change.type !== "add") { return }
+    const entry = this.observeRecursively(change.newValue, parent, change.name) || parent
+
+    for (const { listener, tags, filter } of this.listeners.values()) {
+      if (filter.size && !filter.has("add")) { continue }
+      // check if object is visible for listener
+      if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
+
+      const value = snapshot(change.newValue, { tags })
+      const patch: IJsonPatch = { op: "add", path: path + change.name, value }
+      listener(patch, change.object, this.root)
+    }
+  }
+
+  private processUpdateChange(change: IChange, parent: IEntry, path: string) {
+    if (change.type !== "update") { return }
+
+    const key = (change as any).name || "" + (change as any).index
+    const props = parent.meta && parent.meta.props || []
+
+    this.unobserveRecursively(change.oldValue)
+    const entry = this.observeRecursively(change.newValue, parent, key) || parent
+
+    // ignore observable properies
+    if (parent.meta && !props.find((prop) => prop.key === key)) { return }
+    // if (!props.find((prop) => prop.key === key)) { return }
+    const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
+
+    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+      if (filter.size && !filter.has("replace")) { continue }
+      // check if object and field are visible for listener
+      if (hidden && !this.tagExist(tags, entry.tags)) { continue }
+
+      const value = snapshot(change.newValue, { tags })
+      const patch: IReversibleJsonPatch = { op: "replace", path: path + key, value }
+      if (reversible) {
+        patch.oldValue = snapshot(change.oldValue, { tags })
+      }
+
+      listener(patch, change.object, this.root)
+    }
+  }
+
+  private processDeleteChange(change: IChange, parent: IEntry, path: string) {
+    if (change.type !== "delete" && change.type !== "remove") { return }
+
+    const entry = this.unobserveRecursively(change.oldValue) || parent
+
+    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+      if (filter.size && !filter.has("remove")) { continue }
+      // check if object is visible for listener
+      if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
+
+      const patch: IReversibleJsonPatch = { op: "remove", path: path + change.name }
+      if (reversible) {
+        patch.oldValue = snapshot(change.oldValue, { tags })
+      }
+
+      listener(patch, change.object, this.root)
+    }
+  }
+
+  private processSpliceChange(change: IChange, parent: IEntry, path: string) {
+    if (change.type !== "splice") { return }
+
+    change.removed.forEach((item: any) => {
+      const entry = this.unobserveRecursively(item) || parent
+
+      for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+        if (filter.size && !filter.has("remove")) { continue }
+        if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
+
+        const patch: IReversibleJsonPatch = { op: "remove", path: path + change.index }
+        // TODO: check condition
+        // if (reversible && (!entry.hidden || this.tagExist(tags, entry.tags))) {
+        patch.oldValue = snapshot(item, { tags })
+        // }
+
+        listener(patch, change.object, this.root)
+      }
+    })
+
+    change.added.forEach((item: any, idx: number) => {
+
+      const entry = this.observeRecursively(item, parent, "" + (change.index + idx)) || parent
+      for (const { listener, tags, filter } of this.listeners.values()) {
+
+        if (filter.size && !filter.has("add")) { continue }
+        if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
+
+        const value = snapshot(item, { tags })
+        const patch: IJsonPatch = { op: "add", path: path + change.index, value }
+
+        listener(patch, change.object, this.root)
+      }
+    })
+
+    // update paths
+    for (let i = change.index + change.addedCount; i < change.object.length; i++) {
+      if (this.isRecursivelyObservable(change.object[i])) {
+        const itemEntry = this.entrySet.get(change.object[i])
+        if (itemEntry) { itemEntry.path = "" + i }
+      }
+    }
+  }
+
   private processChange(change: IChange, parent: IEntry) {
-    let entry: IEntry
     let path = "/" + this.buildPath(parent)
     path = path !== "/" ? path + "/" : "/"
 
     switch (change.type) {
-      case "add":
-
-        entry = this.observeRecursively(change.newValue, parent, change.name) || parent
-
-        for (const { listner, tags, filter } of this.listners.values()) {
-          if (filter.size && !filter.has("add")) { continue }
-          // check if object is visible for listner
-          if (entry.hidden && ![...tags].find((tag) => entry.tags.indexOf(tag) >= 0)) { continue }
-
-          const value = snapshot(change.newValue, { tags })
-          const patch: IJsonPatch = { op: "add", path: path + change.name, value }
-          listner(patch, change.object, this.root)
-        }
-
-        break
-
-      case "update":
-
-        const key = (change as any).name || "" + (change as any).index
-        const props = parent.meta && parent.meta.props || []
-
-        this.unobserveRecursively(change.oldValue)
-        entry = this.observeRecursively(change.newValue, parent, key) || parent
-
-        // ignore observable properies
-        if (parent.meta && !props.find((prop) => prop.key === key)) { return }
-        // if (!props.find((prop) => prop.key === key)) { return }
-        const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
-
-        for (const { listner, tags, reversible, filter } of this.listners.values()) {
-          if (filter.size && !filter.has("replace")) { continue }
-          // check if object and field are visible for listner
-          if (hidden && ![...tags].find((tag) => entry.tags.indexOf(tag) >= 0)) { continue }
-
-          const value = snapshot(change.newValue, { tags })
-          const patch: IReversibleJsonPatch = { op: "replace", path: path + key, value }
-          if (reversible) {
-            patch.oldValue = snapshot(change.oldValue, { tags })
-          }
-
-          listner(patch, change.object, this.root)
-        }
-
-        break
-
-      case "delete": case "remove":
-
-        entry = this.unobserveRecursively(change.oldValue) || parent
-
-        for (const { listner, tags, reversible, filter } of this.listners.values()) {
-          if (filter.size && !filter.has("remove")) { continue }
-          // check if object is visible for listner
-          if (entry.hidden && ![...tags].find((tag) => entry.tags.indexOf(tag) >= 0)) { continue }
-
-          const patch: IReversibleJsonPatch = { op: "remove", path: path + change.name }
-          if (reversible) {
-            patch.oldValue = snapshot(change.oldValue, { tags })
-          }
-
-          listner(patch, change.object, this.root)
-        }
-
-        break
-
-      case "splice":
-
-        change.removed.forEach((item: any) => {
-          entry = this.unobserveRecursively(item) || parent
-
-          for (const { listner, tags, reversible, filter } of this.listners.values()) {
-            if (filter.size && !filter.has("remove")) { continue }
-            if (parent.hidden && ![...tags].find((tag) => entry.tags.indexOf(tag) >= 0)) { continue }
-
-            const patch: IReversibleJsonPatch = { op: "remove", path: path + change.index }
-            // if (reversible && (!entry.hidden || [...tags].find((tag) => entry.tags.indexOf(tag) >= 0))) {
-            patch.oldValue = snapshot(item, { tags })
-            // }
-
-            listner(patch, change.object, this.root)
-          }
-        })
-
-        change.added.forEach((item: any, idx: number) => {
-
-          entry = this.observeRecursively(item, parent, "" + (change.index + idx)) || parent
-          for (const { listner, tags, filter } of this.listners.values()) {
-
-            if (filter.size && !filter.has("add")) { continue }
-            if (parent.hidden && ![...tags].find((tag) => entry.tags.indexOf(tag) >= 0)) { continue }
-
-            const value = snapshot(item, { tags })
-            const patch: IJsonPatch = { op: "add", path: path + change.index, value }
-
-            listner(patch, change.object, this.root)
-          }
-        })
-
-        // update paths
-        for (let i = change.index + change.addedCount; i < change.object.length; i++) {
-          if (this.isRecursivelyObservable(change.object[i])) {
-            const itemEntry = this.entrySet.get(change.object[i])
-            if (itemEntry) { itemEntry.path = "" + i }
-          }
-        }
-
-        break
+      case "add": return this.processAddChange(change, parent, path)
+      case "update": return this.processUpdateChange(change, parent, path)
+      case "delete": case "remove": return this.processDeleteChange(change, parent, path)
+      case "splice": this.processSpliceChange(change, parent, path)
     }
   }
 
