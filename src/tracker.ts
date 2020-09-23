@@ -243,7 +243,11 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const patch: IReversibleJsonPatch = { op: "remove", path: path + change.name }
+      const patch: IReversibleJsonPatch = {
+        op: "remove",
+        path: path + change.name
+      }
+
       if (reversible) {
         patch.oldValue = snapshot(change.oldValue, { tags })
       }
@@ -252,8 +256,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     }
   }
 
-  private processSpliceChange(change: IChange, parent: IEntry, path: string) {
-    if (change.type !== "splice") { return }
+  private processSpliceChange(change: mobx.IArraySplice, parent: IEntry, path: string) {
 
     change.removed.forEach((item: any) => {
       const entry = this.unobserveRecursively(item) || parent
@@ -262,11 +265,14 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         if (filter.size && !filter.has("remove")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-        const patch: IReversibleJsonPatch = { op: "remove", path: path + change.index }
-        // TODO: check condition
-        // if (reversible && (!entry.hidden || this.tagExist(tags, entry.tags))) {
-        patch.oldValue = snapshot(item, { tags })
-        // }
+        const patch: IReversibleJsonPatch = {
+          op: "remove",
+          path: path + change.index,
+        }
+
+        if (reversible) {
+          patch.oldValue = (!entry.hidden || this.tagExist(tags, entry.tags)) ? snapshot(item, { tags }) : undefined
+        }
 
         listener(patch, change.object, this.root)
       }
@@ -280,8 +286,11 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         if (filter.size && !filter.has("add")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-        const value = snapshot(item, { tags })
-        const patch: IJsonPatch = { op: "add", path: path + change.index, value }
+        const patch: IJsonPatch = {
+          op: "add",
+          path: path + change.index,
+          value: snapshot(item, { tags })
+        }
 
         listener(patch, change.object, this.root)
       }
@@ -326,13 +335,12 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (!this.isRecursivelyObservable(node)) { return }
 
     let entry = this.entrySet.get(node)
-    if (entry) {
-      if (entry.parent !== parent || entry.path !== path) {
-        throw new Error(`The same observable object cannot appear twice in the same tree,` +
-                        ` trying to assign it to '${this.buildPath(parent)}/${path}',` +
-                        ` but it already exists at '${this.buildPath(entry.parent)}/${entry.path}'`)
-      }
-    } else {
+    if (entry && (entry.parent !== parent || entry.path !== path)) {
+      throw new Error(`The same observable object cannot appear twice in the same tree,` +
+                      ` trying to assign it to '${this.buildPath(parent)}/${path}',` +
+                      ` but it already exists at '${this.buildPath(entry.parent)}/${entry.path}'`)
+    }
+    if (!entry) {
       // observe node
       const dispose = mobx.observe(node, (change: IChange) => {
         this.processChange(change, this.entrySet.get(change.object)!)
