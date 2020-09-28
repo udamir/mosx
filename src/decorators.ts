@@ -1,5 +1,6 @@
 import { observable, computed, IComputed } from "mobx"
 import { Mosx } from "./mosx"
+import { MosxSchema } from "./schema"
 
 /**
  * Decorator for observable and computed properties in Mosx
@@ -48,23 +49,18 @@ import { Mosx } from "./mosx"
 export type PrimitiveType = "any" | "string" | "number" | "boolean" | object
 export type DefinitionType = PrimitiveType | PrimitiveType[] | { map: PrimitiveType } | { set: PrimitiveType }
 
-const context = new WeakSet<any>()
-
 const mosxPropertyDecorator = (type: DefinitionType = "any", hidden = false, getter = false): PropertyDecorator => {
   // tslint:disable-next-line: ban-types
   return (target: Object, key: string | symbol, descriptor?: PropertyDescriptor) => {
     if (typeof key === "string") {
       const constructor = target.constructor as any
 
-      // save ptoperty to context
+      // save ptoperty to schema
       const params = { key, type, hidden, getter }
-      if (!context.has(constructor)) {
-        context.add(constructor)
+      if (!mx.$schema.has(constructor)) {
+        mx.$schema.add(constructor)
         const parent = constructor.$mx || { props: [] }
-        constructor.$mx = {
-          props: [...parent.props],
-          hidden: parent.hidden,
-        }
+        constructor.$mx = { props: [...parent.props], hidden: parent.hidden }
       }
       constructor.$mx.props.push(params)
       return getter ? computed(target, key, descriptor) : observable(target, key)
@@ -85,6 +81,7 @@ const propertyFactory: any = (hidden = false, getter = false) => ({
 const computedFactory: any = mosxPropertyDecorator("any", false, true)
 computedFactory.private = Object.assign(mosxPropertyDecorator("any", true, true), propertyFactory(true, true))
 
+// tslint:disable-next-line: interface-name
 interface MosxTypesDecorator {
   string: PropertyDecorator
   number: PropertyDecorator
@@ -97,6 +94,7 @@ interface MosxTypesDecorator {
 
 type ClassDecorator = <T extends new(...args: any[]) => {}>(constructor: T) => T
 
+// tslint:disable-next-line: interface-name
 interface MosxPrivateDecorator {
   private: PropertyDecorator & MosxTypesDecorator
   computed: IComputed & MosxTypesDecorator & {
@@ -108,13 +106,13 @@ interface MosxPrivateDecorator {
   }
 }
 
-type MosxDecorator = PropertyDecorator & MosxPrivateDecorator & MosxTypesDecorator
+type MosxDecorator = PropertyDecorator & MosxPrivateDecorator & MosxTypesDecorator & { $schema: MosxSchema }
 
 // tslint:disable-next-line: ban-types
 const mosxClassDecorator = (hidden = false) => <T extends new(...args: any[]) => {}>(constructor: T): T => {
   const _constructor = constructor as any
-  if (!context.has(_constructor)) {
-    context.add(_constructor)
+  if (!mx.$schema.has(_constructor)) {
+    mx.$schema.add(_constructor)
     _constructor.$mx = Object.assign({}, _constructor.$mx || { props: [] })
   }
   _constructor.$mx.hidden = hidden
@@ -137,3 +135,5 @@ mx.observable = observable
 mx.Object = Object.assign(mosxClassDecorator(false), {
   private: mosxClassDecorator(true),
 })
+
+mx.$schema = new MosxSchema()

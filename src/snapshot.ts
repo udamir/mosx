@@ -1,4 +1,3 @@
-
 import { ObservableMap, ObservableSet } from "mobx"
 
 import { PrimitiveType } from "./decorators"
@@ -25,6 +24,10 @@ export const snapshot = (target: any, params: ISnapshotParams): any => {
   } else {
     return target
   }
+}
+
+export const compressedSnapshot = (target: any, params: ISnapshotParams): any => {
+  return target
 }
 
 const mosxSnapshot = (target: any, params: ISnapshotParams): ISnapshot | undefined => {

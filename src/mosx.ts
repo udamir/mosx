@@ -8,6 +8,7 @@ import { MosxAdmin } from "./admin"
 const mosx = Symbol("mosx")
 
 export interface IMeta {
+  type?: string
   props: IMetaProperty[]
   hidden?: boolean
 }
@@ -18,6 +19,7 @@ export interface IMetaProperty {
   hidden?: boolean
   getter?: boolean
 }
+
 export abstract class Mosx {
   public static $mx: IMeta
   private [mosx]: MosxAdmin
@@ -26,7 +28,7 @@ export abstract class Mosx {
     Mosx.inject(this, owner, tags)
   }
 
-  static [Symbol.hasInstance](instance: any) {
+  public static [Symbol.hasInstance](instance: any) {
     return instance && instance[mosx] && instance[mosx] instanceof MosxAdmin
   }
 

@@ -2,6 +2,8 @@ import * as mobx from "mobx"
 
 import { snapshot } from "./snapshot"
 import { Mosx, IMeta } from "./mosx"
+import { mx } from "./decorators"
+import { ISchema } from "./schema"
 
 export type JsonPatchOp = "replace" | "add" | "remove"
 
@@ -15,9 +17,14 @@ export interface IReversibleJsonPatch extends IJsonPatch {
   oldValue?: any
 }
 
-export type MosxPatchListener<T> = (patch: IJsonPatch | IReversibleJsonPatch, obj: any, root: T) => void
+export interface ICompressedJsonPatch extends IReversibleJsonPatch {
+  compressed?: Buffer
+}
+
+export type MosxPatchListener<T> = (patch: ICompressedJsonPatch, obj: any, root: T) => void
 
 export interface IMosxSnapshotParams {
+  compression?: string
   tags?: string | string[]
   spy?: boolean
 }
@@ -25,11 +32,13 @@ export interface IMosxSnapshotParams {
 export interface IMTrackerParams extends IMosxSnapshotParams {
   filter?: JsonPatchOp | JsonPatchOp[]
   reversible?: boolean
+  compression?: string
 }
 
 export interface IMosxTracker<T> {
   onPatch: (listener: MosxPatchListener<T>, params?: IMTrackerParams) => IDisposer
   snapshot(params?: IMosxSnapshotParams): { [key: string]: any }
+  schema: ISchema
   dispose(): void
 }
 
@@ -59,6 +68,7 @@ interface IListener<T> {
   filter: Set<JsonPatchOp>
   tags: string[]
   reversible: boolean
+  compression?: string
   spy?: boolean // TODO: add spy logic for monitoring
 }
 
@@ -77,15 +87,19 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.observeRecursively(this.root, undefined, "")
   }
 
+  public get schema(): ISchema {
+    return mx.$schema.schema
+  }
+
   public onPatch(listener: MosxPatchListener<T>, params: IMTrackerParams = {}): IDisposer {
     let { tags = [], filter = [] } = params
-    const { reversible = false, spy = false } = params
+    const { reversible = false, spy = false, compression } = params
 
     filter = Array.isArray(filter) ? filter : [filter]
     tags = Array.isArray(tags) ? tags : [tags]
 
     const id = "" + this.lastId++
-    this.listeners.set(id, { listener, filter: new Set(filter), tags, reversible, spy })
+    this.listeners.set(id, { listener, filter: new Set(filter), tags, reversible, spy, compression })
 
     return () => { this.listeners.delete(id) }
   }
@@ -104,6 +118,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
   public tagExist(entryTags?: Set<string> | string[], tags: string[] = []) {
     const tagsArr = entryTags ? [...entryTags] : []
+    // tslint:disable-next-line: no-bitwise
     return !!tagsArr.find((tag) => !!~tags.indexOf(tag))
   }
 
@@ -119,7 +134,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     if (!props.length && !entry.hidden) { return }
 
-    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+    for (const { listener, tags, reversible, filter, compression } of this.listeners.values()) {
       // check if listeners already got this patch
       let patchedObjects = this.patchedObjects.get(listener)
       if (!patchedObjects) {
@@ -127,7 +142,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         this.patchedObjects.set(listener, patchedObjects)
       } else {
         let alreadyPatched = false
-        for(const parent of patchedObjects) {
+        for (const parent of patchedObjects) {
           alreadyPatched = object === parent || Mosx.isParent(object, parent)
           if (alreadyPatched) { break }
         }
@@ -158,13 +173,17 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
       for (const changedObject of changedObjects) {
         // create patch for each changed object/property
-        const patch: IReversibleJsonPatch = {
+        const patch: ICompressedJsonPatch = {
           op: changedObject.op,
           path: changedObject.path,
-          value: nowVisible && snapshot(changedObject.object, { tags })
+          value: nowVisible && snapshot(changedObject.object, { tags }),
         }
         if (reversible) {
           patch.oldValue = wasVisible && snapshot(changedObject.object, { tags, objTags: change.oldValue })
+        }
+
+        if (compression) {
+          patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry), reversible)
         }
 
         // save patched object
@@ -182,19 +201,32 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.processChange(change, entry)
   }
 
+  private entryTypePath(entry?: IEntry): Array<string | undefined> {
+    const pathArr = []
+    while (entry) {
+      pathArr.push(entry.meta && entry.meta.type)
+      entry = entry.parent
+    }
+    return pathArr.reverse()
+  }
+
   private processAddChange(change: IChange, parent: IEntry, path: string) {
     if (change.type !== "add") { return }
     const entry = this.observeRecursively(change.newValue, parent, change.name) || parent
 
-    for (const { listener, tags, filter } of this.listeners.values()) {
+    for (const { listener, tags, filter, compression } of this.listeners.values()) {
       if (filter.size && !filter.has("add")) { continue }
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const patch: IJsonPatch = {
+      const patch: ICompressedJsonPatch = {
         op: "add",
         path: path + change.name,
-        value: snapshot(change.newValue, { tags })
+        value: snapshot(change.newValue, { tags }),
+      }
+
+      if (compression) {
+        patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry))
       }
 
       listener(patch, change.object, this.root)
@@ -214,12 +246,12 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (parent.meta && !props.find((prop) => prop.key === key)) { return }
     const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
 
-    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+    for (const { listener, tags, reversible, filter, compression } of this.listeners.values()) {
       if (filter.size && !filter.has("replace")) { continue }
       // check if object and field are visible for listener
       if (hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const patch: IReversibleJsonPatch = {
+      const patch: ICompressedJsonPatch = {
         op: "replace",
         path: path + key,
         value: snapshot(change.newValue, { tags }),
@@ -227,6 +259,10 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
       if (reversible) {
         patch.oldValue = snapshot(change.oldValue, { tags })
+      }
+
+      if (compression) {
+        patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry), reversible)
       }
 
       listener(patch, change.object, this.root)
@@ -238,18 +274,22 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     const entry = this.unobserveRecursively(change.oldValue) || parent
 
-    for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+    for (const { listener, tags, reversible, filter, compression } of this.listeners.values()) {
       if (filter.size && !filter.has("remove")) { continue }
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-      const patch: IReversibleJsonPatch = {
+      const patch: ICompressedJsonPatch = {
         op: "remove",
-        path: path + change.name
+        path: path + change.name,
       }
 
       if (reversible) {
         patch.oldValue = snapshot(change.oldValue, { tags })
+      }
+
+      if (compression) {
+        patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry), reversible)
       }
 
       listener(patch, change.object, this.root)
@@ -261,17 +301,21 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     change.removed.forEach((item: any) => {
       const entry = this.unobserveRecursively(item) || parent
 
-      for (const { listener, tags, reversible, filter } of this.listeners.values()) {
+      for (const { listener, tags, reversible, filter, compression } of this.listeners.values()) {
         if (filter.size && !filter.has("remove")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-        const patch: IReversibleJsonPatch = {
+        const patch: ICompressedJsonPatch = {
           op: "remove",
           path: path + change.index,
         }
 
         if (reversible) {
           patch.oldValue = (!entry.hidden || this.tagExist(tags, entry.tags)) ? snapshot(item, { tags }) : undefined
+        }
+
+        if (compression) {
+          patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry), reversible)
         }
 
         listener(patch, change.object, this.root)
@@ -281,15 +325,19 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     change.added.forEach((item: any, idx: number) => {
 
       const entry = this.observeRecursively(item, parent, "" + (change.index + idx)) || parent
-      for (const { listener, tags, filter } of this.listeners.values()) {
+      for (const { listener, tags, filter, compression } of this.listeners.values()) {
 
         if (filter.size && !filter.has("add")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
-        const patch: IJsonPatch = {
+        const patch: ICompressedJsonPatch = {
           op: "add",
           path: path + change.index,
-          value: snapshot(item, { tags })
+          value: snapshot(item, { tags }),
+        }
+
+        if (compression) {
+          patch.compressed = mx.$schema.encodePatch(patch, this.entryTypePath(entry))
         }
 
         listener(patch, change.object, this.root)
@@ -347,7 +395,10 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       })
 
       // current node metadata
-      const meta = Mosx.meta(node)
+      const meta: any = Mosx.meta(node)
+      if (node instanceof Mosx) {
+        meta.type = node.constructor.name || (node.constructor as any).__proto__.name
+      }
       // check if path is hidden
       const parentProps = parent && parent.meta && parent.meta.props || []
       const hiddenProp = !!parentProps.find((prop) => prop.key === path && (prop.hidden || false))

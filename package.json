@@ -11,11 +11,16 @@
     "build": "tsc",
     "test": "jest --verbose"
   },
-  "keywords": ["mobx", "state management", "magx"],
+  "keywords": [
+    "mobx",
+    "state management",
+    "magx"
+  ],
   "author": "Damir Yusipov",
   "license": "MIT",
   "dependencies": {
-    "mobx": "^5.15.4"
+    "mobx": "^5.15.4",
+    "notepack.io": "^2.3.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.0",
