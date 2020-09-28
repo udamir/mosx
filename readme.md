@@ -99,4 +99,4 @@ console.log(snapshot)
 
 ## License
 
-MIT
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fudamir%2Fmosx.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fudamir%2Fmosx?ref=badge_large)
