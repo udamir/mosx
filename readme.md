@@ -7,7 +7,8 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 - Observable state with concept of a living tree
 - Multiple views of the same state (public and private parts)
 - Runtime views configuration
-- Patch ([JsonPatch](http://jsonpatch.com/) format) and snapshot generation for each view
+- State schema generation
+- Patch ([JsonPatch](http://jsonpatch.com/)/CompressedPatch format) and snapshot generation for each view
 - Typescript syntax support out of the box
 - Works perfect with [MagX](https://github.com/udamir/magx) server
 
