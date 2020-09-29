@@ -1,6 +1,6 @@
 import { computed } from "mobx"
 
-import { MosxTracker, IMosxTracker } from "./tracker"
+import { MosxTracker, IMosxTracker, IMosxTrackerParams } from "./tracker"
 import { DefinitionType } from "./decorators"
 import { snapshot } from "./snapshot"
 import { MosxAdmin } from "./admin"
@@ -88,14 +88,14 @@ export abstract class Mosx {
     return snapshot(target, { tags })
   }
 
-  public static createTracker<T>(target: T): IMosxTracker<T> {
+  public static createTracker<T>(target: T, params?: IMosxTrackerParams): IMosxTracker<T> {
     if (!(target instanceof Mosx)) {
       throw Error("Tracker can be created only for Mosx object!")
     }
     if (Mosx.getParent(target)) {
       throw Error("Tracker can be created only for root object!")
     }
-    const tracker = target[mosx].tracker || new MosxTracker(target)
+    const tracker = target[mosx].tracker || new MosxTracker(target, params)
     target[mosx].tracker = tracker
     return tracker
   }

@@ -1,6 +1,6 @@
 import { observable, computed, IComputed } from "mobx"
 import { Mosx } from "./mosx"
-import { MosxSchema } from "./schema"
+import { MosxContext } from "./context"
 
 /**
  * Decorator for observable and computed properties in Mosx
@@ -57,8 +57,8 @@ const mosxPropertyDecorator = (type: DefinitionType = "any", hidden = false, get
 
       // save ptoperty to schema
       const params = { key, type, hidden, getter }
-      if (!mx.$schema.has(constructor)) {
-        mx.$schema.add(constructor)
+      if (!mx.$context.has(constructor)) {
+        mx.$context.add(constructor)
         const parent = constructor.$mx || { props: [] }
         constructor.$mx = { props: [...parent.props], hidden: parent.hidden }
       }
@@ -106,13 +106,13 @@ interface MosxPrivateDecorator {
   }
 }
 
-type MosxDecorator = PropertyDecorator & MosxPrivateDecorator & MosxTypesDecorator & { $schema: MosxSchema }
+type MosxDecorator = PropertyDecorator & MosxPrivateDecorator & MosxTypesDecorator & { $context: MosxContext }
 
 // tslint:disable-next-line: ban-types
 const mosxClassDecorator = (hidden = false) => <T extends new(...args: any[]) => {}>(constructor: T): T => {
   const _constructor = constructor as any
-  if (!mx.$schema.has(_constructor)) {
-    mx.$schema.add(_constructor)
+  if (!mx.$context.has(_constructor)) {
+    mx.$context.add(_constructor)
     _constructor.$mx = Object.assign({}, _constructor.$mx || { props: [] })
   }
   _constructor.$mx.hidden = hidden
@@ -136,4 +136,4 @@ mx.Object = Object.assign(mosxClassDecorator(false), {
   private: mosxClassDecorator(true),
 })
 
-mx.$schema = new MosxSchema()
+mx.$context = new MosxContext()
