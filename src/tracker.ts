@@ -58,6 +58,7 @@ type IChange = mobx.IObjectDidChange |
                mobx.IArrayChange | mobx.IArraySplice | mobx.IMapDidChange | mobx.IValueDidChange<any>
 
 interface IEntry {
+  id: number
   dispose: IDisposer
   path: string
   parent: IEntry | undefined
@@ -67,7 +68,7 @@ interface IEntry {
 }
 
 interface IListener<T> {
-  listener: MosxPatchListener<T>
+  handler: MosxPatchListener<T>
   filter: Set<JsonPatchOp>
   tags: string[]
   reversible: boolean
@@ -77,7 +78,7 @@ interface IListener<T> {
 
 export class MosxTracker<T = any> implements IMosxTracker<T> {
   private lastId: number = 0
-  private listeners: Map<string, IListener<T>> = new Map<string, IListener<T>>()
+  private listeners: Set<IListener<T>> = new Set<IListener<T>>()
   private patchedObjects: Map<MosxPatchListener<T>, any[]> = new Map<MosxPatchListener<T>, any[]>()
   public entrySet = new WeakMap<any, IEntry>()
   public root: T
@@ -99,17 +100,17 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     return mx.$context.decodeMap(serializer)
   }
 
-  public onPatch(listener: MosxPatchListener<T>, params: IMosxPatchParams = {}): IDisposer {
+  public onPatch(handler: MosxPatchListener<T>, params: IMosxPatchParams = {}): IDisposer {
     let { tags = [], filter = [] } = params
     const { reversible = this.reversible, spy = false, serializer = this.serializer } = params
 
     filter = Array.isArray(filter) ? filter : [filter]
     tags = Array.isArray(tags) ? tags : [tags]
 
-    const id = "" + this.lastId++
-    this.listeners.set(id, { listener, filter: new Set(filter), tags, reversible, spy, serializer })
+    const listener = { handler, filter: new Set(filter), tags, reversible, spy, serializer }
+    this.listeners.add(listener)
 
-    return () => { this.listeners.delete(id) }
+    return () => { this.listeners.delete(listener) }
   }
 
   public dispose() {
@@ -142,7 +143,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     if (!props.length && !entry.hidden) { return }
 
-    for (const { listener, tags, reversible, filter, serializer } of this.listeners.values()) {
+    for (const { handler: listener, tags, reversible, filter, serializer } of this.listeners.values()) {
       // check if listeners already got this patch
       let patchedObjects = this.patchedObjects.get(listener)
       if (!patchedObjects) {
@@ -222,7 +223,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (change.type !== "add") { return }
     const entry = this.observeRecursively(change.newValue, parent, change.name) || parent
 
-    for (const { listener, tags, filter, serializer } of this.listeners.values()) {
+    for (const { handler, tags, filter, serializer } of this.listeners.values()) {
       if (filter.size && !filter.has("add")) { continue }
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
@@ -237,7 +238,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         patch.encoded = mx.$context.encodePatch(patch, this.entryTypePath(entry), serializer)
       }
 
-      listener(patch, change.object, this.root)
+      handler(patch, change.object, this.root)
     }
   }
 
@@ -254,7 +255,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (parent.meta && !props.find((prop) => prop.key === key)) { return }
     const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
 
-    for (const { listener, tags, reversible, filter, serializer } of this.listeners.values()) {
+    for (const { handler, tags, reversible, filter, serializer } of this.listeners.values()) {
       if (filter.size && !filter.has("replace")) { continue }
       // check if object and field are visible for listener
       if (hidden && !this.tagExist(tags, entry.tags)) { continue }
@@ -273,7 +274,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         patch.encoded = mx.$context.encodePatch(patch, this.entryTypePath(entry), serializer)
       }
 
-      listener(patch, change.object, this.root)
+      handler(patch, change.object, this.root)
     }
   }
 
@@ -282,7 +283,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     const entry = this.unobserveRecursively(change.oldValue) || parent
 
-    for (const { listener, tags, reversible, filter, serializer } of this.listeners.values()) {
+    for (const { handler, tags, reversible, filter, serializer } of this.listeners.values()) {
       if (filter.size && !filter.has("remove")) { continue }
       // check if object is visible for listener
       if (entry.hidden && !this.tagExist(tags, entry.tags)) { continue }
@@ -300,7 +301,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         patch.encoded = mx.$context.encodePatch(patch, this.entryTypePath(entry), serializer)
       }
 
-      listener(patch, change.object, this.root)
+      handler(patch, change.object, this.root)
     }
   }
 
@@ -309,7 +310,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     change.removed.forEach((item: any) => {
       const entry = this.unobserveRecursively(item) || parent
 
-      for (const { listener, tags, reversible, filter, serializer } of this.listeners.values()) {
+      for (const { handler, tags, reversible, filter, serializer } of this.listeners.values()) {
         if (filter.size && !filter.has("remove")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
 
@@ -326,14 +327,14 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
           patch.encoded = mx.$context.encodePatch(patch, this.entryTypePath(entry), serializer)
         }
 
-        listener(patch, change.object, this.root)
+        handler(patch, change.object, this.root)
       }
     })
 
     change.added.forEach((item: any, idx: number) => {
 
       const entry = this.observeRecursively(item, parent, "" + (change.index + idx)) || parent
-      for (const { listener, tags, filter, serializer } of this.listeners.values()) {
+      for (const { handler, tags, filter, serializer } of this.listeners.values()) {
 
         if (filter.size && !filter.has("add")) { continue }
         if (parent.hidden && !this.tagExist(tags, entry.tags)) { continue }
@@ -348,7 +349,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
           patch.encoded = mx.$context.encodePatch(patch, this.entryTypePath(entry), serializer)
         }
 
-        listener(patch, change.object, this.root)
+        handler(patch, change.object, this.root)
       }
     })
 
@@ -416,7 +417,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       const tags: string[] = Array.from(Mosx.getTags(node) || parent && parent.tags || [])
 
       // store endtry
-      entry = { parent, path, dispose, meta, hidden, tags }
+      entry = { id: this.lastId++, parent, path, dispose, meta, hidden, tags }
       this.entrySet.set(node, entry)
 
       // add default parent (root) to mosx object tagsTree

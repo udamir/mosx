@@ -378,3 +378,15 @@ describe("Add tag of client1 to private object in map", () => {
     })
   }).run(unhandledTest)
 })
+
+describe("Stop tracking change", () => {
+  const value = "test"
+  tester.disposers.client1()
+  tester
+  .onAction(() => state.prop = value)
+  .trigger((id: string, change: IReversibleJsonPatch) => {
+    test(`${id} should get replace change for property`, () => {
+      expect(change).toMatchObject({ path: "/prop", op: "replace", value })
+    })
+  }).run(unhandledTest)
+})

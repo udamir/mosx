@@ -23,9 +23,8 @@ export class MosxContext {
   public index: string[] = []
 
   // mosx schema
-  public decodeMap(serializer = "string"): any {
+  public decodeMap(serializer = "mpack"): any {
     switch (serializer) {
-      case "string": return {}
       case "light": return light.decodeMap(this)
       case "mpack": return mpack.decodeMap(this)
       default:
@@ -49,9 +48,8 @@ export class MosxContext {
     return this.types.has(constructor)
   }
 
-  public encodePatch(patch: IReversibleJsonPatch, pathItems: string[], serializer = "string"): Buffer {
+  public encodePatch(patch: IReversibleJsonPatch, pathItems: string[], serializer = "mpack"): Buffer {
     switch (serializer) {
-      case "string": return Buffer.from(JSON.stringify(patch))
       case "light": return light.encode(this, patch, pathItems)
       case "mpack": return mpack.encode(this, patch, pathItems)
       // custom serializer implementations
@@ -61,9 +59,8 @@ export class MosxContext {
   }
 
   // decode patch
-  public decodePatch(buffer: Buffer, serializer = "string"): IReversibleJsonPatch {
+  public decodePatch(buffer: Buffer, serializer = "mpack"): IReversibleJsonPatch {
     switch (serializer) {
-      case "string": return JSON.parse(buffer.toString())
       case "light": return light.decode(this, buffer)
       case "mpack": return mpack.decode(this, buffer)
       default:
