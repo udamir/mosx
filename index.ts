@@ -4,7 +4,7 @@ export {
   PrimitiveType,
   DefinitionType,
   IMosxTracker,
-  IMTrackerParams,
+  IMosxTrackerParams,
   MosxPatchListener,
   JsonPatchOp,
   IJsonPatch,
