@@ -1,5 +1,5 @@
 # MosX 
-<img alt="npm" src="https://img.shields.io/npm/v/mosx"> <img alt="npm" src="https://img.shields.io/npm/dm/mosx?label=npm"> <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/udamir/mosx/master?token=af6cb1791c99dfb47ce0b39b3269c0433f9a10b7"> <img alt="GitHub" src="https://img.shields.io/github/license/udamir/mosx">
+<img alt="npm" src="https://img.shields.io/npm/v/mosx"> <img alt="npm" src="https://img.shields.io/npm/dm/mosx?label=npm"> <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/udamir/mosx/master?token=af6cb1791c99dfb47ce0b39b3269c0433f9a10b7"> <img alt="npm type definitions" src="https://img.shields.io/npm/types/mosx"> <img alt="GitHub" src="https://img.shields.io/github/license/udamir/mosx">
 
 Multiview observable state management engine based on [MobX](https://mobx.js.org/README.html)
 
