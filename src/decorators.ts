@@ -21,7 +21,7 @@ import { MosxContext } from "./context"
  *
  *    // public computed property
  *    @mx.computed.string
- *    get flag() { this.bool } // if this.bool change, computed property flag will change too
+ *    get flag() { return this.bool } // if this.bool change, computed property flag will change too
  *
  *    // observable property, but not visible for tracker
  *    // @mx.observable === mobx.observable
@@ -29,7 +29,7 @@ import { MosxContext } from "./context"
  *
  *    // private computed property
  *    @mx.computed.private.string
- *    get flag2() { this.mobx } // if this.mobx change, computed property flag2 will change too
+ *    get flag2() { return this.mobx } // if this.mobx change, computed property flag2 will change too
  * }
  *
  * // use class decorator for private objectes

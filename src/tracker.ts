@@ -91,7 +91,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       throw Error("Can track only root object!")
     }
     this.root = object
-    this.serializer = params && params.serializer
+    this.serializer = params && params.serializer || ""
     this.reversible = params && params.reversible || false
     this.observeRecursively(this.root, undefined, "")
   }
