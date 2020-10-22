@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Overview | Mosx Documentation</title>
+    <meta name="generator" content="VuePress 1.5.2">
+    
+    <meta name="description" content="State management framework">
+    <link rel="preload" href="/assets/css/0.styles.98136e72.css" as="style"><link rel="preload" href="/assets/js/app.1d47c4d1.js" as="script"><link rel="preload" href="/assets/js/2.4b0d1f09.js" as="script"><link rel="preload" href="/assets/js/7.a414f66d.js" as="script"><link rel="prefetch" href="/assets/js/3.a4f74430.js"><link rel="prefetch" href="/assets/js/4.d586ce0c.js"><link rel="prefetch" href="/assets/js/5.1257bbb1.js"><link rel="prefetch" href="/assets/js/6.8b483536.js"><link rel="prefetch" href="/assets/js/8.cb347a8c.js"><link rel="prefetch" href="/assets/js/9.426f6a4e.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.98136e72.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><!----> <span class="site-name">Mosx Documentation</span></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="http://github.com/udamir/mosx" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="http://github.com/udamir/mosx" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><a href="/" aria-current="page" class="sidebar-link">Introduction</a></li><li><a href="/overview.html" aria-current="page" class="active sidebar-link">Overview</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/overview.html#mosx-object" class="sidebar-link">Mosx object</a></li><li class="sidebar-sub-header"><a href="/overview.html#supported-types" class="sidebar-link">Supported types</a></li><li class="sidebar-sub-header"><a href="/overview.html#snapshots" class="sidebar-link">Snapshots</a></li><li class="sidebar-sub-header"><a href="/overview.html#change-tracker" class="sidebar-link">Change tracker</a></li><li class="sidebar-sub-header"><a href="/overview.html#computed-and-observable-properies" class="sidebar-link">Computed and Observable properies</a></li><li class="sidebar-sub-header"><a href="/overview.html#private-objects-and-properties" class="sidebar-link">Private objects and properties</a></li><li class="sidebar-sub-header"><a href="/overview.html#visiblity-management" class="sidebar-link">Visiblity management</a></li></ul></li><li><a href="/mosx-api.html" class="sidebar-link">Mosx API</a></li><li><a href="/tracker-api.html" class="sidebar-link">Tracker</a></li><li><a href="/examples.html" class="sidebar-link">Examples</a></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="overview"><a href="#overview" class="header-anchor">#</a> Overview</h1> <h2 id="mosx-object"><a href="#mosx-object" class="header-anchor">#</a> Mosx object</h2> <p>Mosx object can be created in 2 ways:</p> <ul><li>by <code>@mx.Object</code> decorator</li> <li>by extending Mosx class</li></ul> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token comment">// wrap with class decorator</span>
+@mx<span class="token punctuation">.</span>Object 
+<span class="token keyword">class</span> <span class="token class-name">State</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// property decorator</span>
+  @mx clients <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Map</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+  <span class="token comment">// ...</span>
+
+<span class="token punctuation">}</span>
+
+<span class="token comment">// extending Mosx class </span>
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token keyword">extends</span> <span class="token class-name">Mosx</span> <span class="token punctuation">{</span>
+
+  @mx name <span class="token operator">=</span> <span class="token string">&quot;abc&quot;</span>
+
+  <span class="token comment">// ...</span>
+
+<span class="token punctuation">}</span>
+
+<span class="token comment">// inheritance is also supported</span>
+<span class="token keyword">class</span> <span class="token class-name">Child</span> <span class="token keyword">extends</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// ...</span>
+
+<span class="token punctuation">}</span>
+</code></pre></div><div class="custom-block tip"><p class="custom-block-title">TIP</p> <p>Instanses of State, Item and Child classes will be Mosx object</p></div> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">State</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">instanceof</span> <span class="token class-name">Mosx</span><span class="token punctuation">)</span> <span class="token comment">// true</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">instanceof</span> <span class="token class-name">Mosx</span><span class="token punctuation">)</span> <span class="token comment">// true</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Child</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">instanceof</span> <span class="token class-name">Mosx</span><span class="token punctuation">)</span> <span class="token comment">// true</span>
+</code></pre></div><h2 id="supported-types"><a href="#supported-types" class="header-anchor">#</a> Supported types</h2> <ul><li>primitive types: number, string, boolean</li> <li>complex types: embeded object (Mosx), array, map</li></ul> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// simple types: string, number, boolen</span>
+  @mx name <span class="token operator">=</span> <span class="token string">&quot;abc&quot;</span>
+  @mx id <span class="token operator">=</span> <span class="token number">123</span> 
+  @mx bool <span class="token operator">=</span> <span class="token boolean">false</span>
+
+  <span class="token comment">// complex types: object, array, map</span>
+  @mx obj <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">// must be Mosx instance</span>
+  @mx arr <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Array</span><span class="token operator">&lt;</span>Item<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+  @mx map <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Map</span><span class="token operator">&lt;</span><span class="token builtin">string</span><span class="token punctuation">,</span> Item<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token punctuation">}</span>
+</code></pre></div><h2 id="snapshots"><a href="#snapshots" class="header-anchor">#</a> Snapshots</h2> <p>Snapshots are the immutable, structurally shared, representation of Mosx object (and it's children).</p> <p>Basically, when a change is performed over a Mosx object then a new immutable snapshot can be generated via <code>Mosx.getSnapshot</code> method.</p> <p>Getting the snapshot out of any Mosx object is as easy as this:</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+  @mx name <span class="token operator">=</span> <span class="token string">&quot;abc&quot;</span>
+  @mx id <span class="token operator">=</span> <span class="token number">123</span> 
+  @mx bool <span class="token operator">=</span> <span class="token boolean">false</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> item <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// get snapshot of item</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: &quot;abc&quot;, id: 123, bool: false }</span>
+</code></pre></div><h2 id="change-tracker"><a href="#change-tracker" class="header-anchor">#</a> Change tracker</h2> <p>Every change of Mosx state can be tracked. First you need to create tracker and then subscribe for patches:</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">const</span> tracker <span class="token operator">=</span> Mosx<span class="token punctuation">.</span><span class="token function">createTracker</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span>
+
+<span class="token keyword">const</span> disposer <span class="token operator">=</span> tracker<span class="token punctuation">.</span><span class="token function">onPatch</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">patch<span class="token operator">:</span> IEncodedJsonPatch<span class="token punctuation">,</span> obj<span class="token operator">:</span> <span class="token builtin">any</span><span class="token punctuation">,</span> state<span class="token operator">:</span> State</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  <span class="token comment">// ...</span>
+  <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>patch<span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre></div><p>A patch object has this structure:</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">export</span> <span class="token keyword">interface</span> <span class="token class-name">IEncodedJsonPatch</span> <span class="token punctuation">{</span>
+  op<span class="token operator">:</span> <span class="token string">&quot;replace&quot;</span> <span class="token operator">|</span> <span class="token string">&quot;remove&quot;</span> <span class="token operator">|</span> <span class="token string">&quot;add&quot;</span>
+  path<span class="token operator">:</span> Path
+  value<span class="token operator">?</span><span class="token operator">:</span> <span class="token builtin">any</span> <span class="token comment">// value is not available for remove operations</span>
+  oldValue<span class="token operator">?</span><span class="token operator">:</span> <span class="token builtin">any</span> <span class="token comment">// only if reversible enabled</span>
+  encoded<span class="token operator">?</span><span class="token operator">:</span> Buffer <span class="token comment">// only if serializer used</span>
+<span class="token punctuation">}</span>
+</code></pre></div><h2 id="computed-and-observable-properies"><a href="#computed-and-observable-properies" class="header-anchor">#</a> Computed and Observable properies</h2> <p>Computed property can be tracked also if it depends on any <code>@mx</code> property (including <code>@mx.oservable</code>). Use <code>@mx.computed</code> decorator to wrap computed property.</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// computed property</span>
+  @mx<span class="token punctuation">.</span>computed <span class="token keyword">get</span> <span class="token function">flag</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> 
+    <span class="token keyword">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span>mobx <span class="token operator">?</span> <span class="token string">&quot;Computed value&quot;</span> <span class="token operator">:</span> <span class="token string">&quot;&quot;</span>
+  <span class="token punctuation">}</span>
+
+  <span class="token comment">// observable property</span>
+  @mx<span class="token punctuation">.</span>observable <span class="token keyword">public</span> mobx <span class="token operator">=</span> <span class="token boolean">true</span>
+
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> item <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// get snapshot of item</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { flag: 'Computed value' }</span>
+
+<span class="token comment">// update observable property</span>
+item<span class="token punctuation">.</span>mobx <span class="token operator">=</span> <span class="token boolean">false</span>
+
+<span class="token comment">// get updated snapdhot of item</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { flag: '' }</span>
+
+</code></pre></div><p>Observable properties are hidden for tracker and snapshots</p> <div class="custom-block tip"><p class="custom-block-title">TIP</p> <p><code>@mx.observable === mobx.observable</code></p></div> <h2 id="private-objects-and-properties"><a href="#private-objects-and-properties" class="header-anchor">#</a> Private objects and properties</h2> <p>By default all <code>@mx</code> objects/properties are public and visible for all listeners. If it is required to manage visibility of objects/properies you need to make them private.</p> <p>Use <code>@mx.Object.private</code> decorator for private objects:</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object<span class="token punctuation">.</span><span class="token keyword">private</span>
+<span class="token keyword">class</span> <span class="token class-name">PrivateItem</span> <span class="token punctuation">{</span>
+  <span class="token operator">...</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>Use <code>@mx.private</code> decorator for private properties and <code>@mx.computed.private</code> decorator for private computed properties:</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+
+  <span class="token comment">// public property</span>
+  @mx name <span class="token operator">=</span> <span class="token string">&quot;abc&quot;</span>
+
+  <span class="token comment">// private property</span>
+  @mx<span class="token punctuation">.</span><span class="token keyword">private</span> value <span class="token operator">=</span> <span class="token number">100</span>
+
+  <span class="token comment">// private computed property</span>
+  @mx<span class="token punctuation">.</span>computed<span class="token punctuation">.</span><span class="token keyword">private</span> <span class="token keyword">get</span> <span class="token function">flag</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// ...</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> item <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// get snapshot of item</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: 'abc' }</span>
+</code></pre></div><p>Private objects and properties are not visible for tracker and in snapshots without access tags. Access for private objects and properties are described in Visibility management.</p> <h2 id="visiblity-management"><a href="#visiblity-management" class="header-anchor">#</a> Visiblity management</h2> <h3 id="access-tags"><a href="#access-tags" class="header-anchor">#</a> Access tags</h3> <p>Access tags can be added to any Mosx object. All listeners with one of this tag can see all private properties of Mosx object. To manage access tags of object use <code>addTag, deleteTag, getTags</code> methods:</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+  <span class="token comment">// public property</span>
+  @mx name <span class="token operator">=</span> <span class="token string">&quot;abc&quot;</span>
+
+  <span class="token comment">// private property</span>
+  @mx<span class="token punctuation">.</span><span class="token keyword">private</span> value <span class="token operator">=</span> <span class="token number">100</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> item <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token comment">// add access tags to object</span>
+Mosx<span class="token punctuation">.</span><span class="token function">addTag</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token string">&quot;123&quot;</span><span class="token punctuation">,</span> <span class="token string">&quot;234&quot;</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+
+<span class="token comment">// get snapshot of item with access tag</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token string">&quot;123&quot;</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: 'abc', value: 100 }</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token string">&quot;234&quot;</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: 'abc', value: 100 }</span>
+
+<span class="token comment">// delete one of tags</span>
+Mosx<span class="token punctuation">.</span><span class="token function">deleteTag</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token string">&quot;123&quot;</span><span class="token punctuation">)</span>
+
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token string">&quot;123&quot;</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: 'abc' }</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>item<span class="token punctuation">,</span> <span class="token string">&quot;234&quot;</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { name: 'abc', value: 100 }</span>
+
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getTags</span><span class="token punctuation">(</span>item<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// Set(1) {&quot;234&quot;}</span>
+</code></pre></div><h3 id="virtual-objects-tree-advanced"><a href="#virtual-objects-tree-advanced" class="header-anchor">#</a> Virtual objects tree (advanced)</h3> <p>Every Mosx object has virtual Mosx parent and inherits parent tags and tracker. By default parent of all Mosx objects are root state Object. To manage virtual objects tree use <code>setParent</code> method:</p> <div class="language-ts extra-class"><pre class="language-ts"><code>@mx<span class="token punctuation">.</span>Object
+<span class="token keyword">class</span> <span class="token class-name">State</span> <span class="token punctuation">{</span>
+  @mx players <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Array</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+  @mx objects <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Map</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">Player</span> <span class="token keyword">extends</span> <span class="token class-name">Mosx</span> <span class="token punctuation">{</span>
+  @mx<span class="token punctuation">.</span><span class="token keyword">private</span> id<span class="token operator">:</span> <span class="token builtin">string</span>
+  @mx name<span class="token operator">:</span> <span class="token builtin">string</span>
+
+  <span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token parameter">id<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">,</span> name<span class="token operator">:</span> <span class="token builtin">string</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">super</span><span class="token punctuation">(</span><span class="token keyword">null</span><span class="token punctuation">,</span> id<span class="token punctuation">)</span> <span class="token comment">// setTag for player</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span>id <span class="token operator">=</span> id
+    <span class="token keyword">this</span><span class="token punctuation">.</span>name <span class="token operator">=</span> name
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+@mx<span class="token punctuation">.</span>Object<span class="token punctuation">.</span><span class="token keyword">private</span>
+<span class="token keyword">class</span> <span class="token class-name">Item</span> <span class="token punctuation">{</span>
+  @mx created <span class="token operator">=</span> Date<span class="token punctuation">.</span><span class="token function">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// create state and players</span>
+<span class="token keyword">const</span> state <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">State</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> p1 <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Player</span><span class="token punctuation">(</span><span class="token string">&quot;1&quot;</span><span class="token punctuation">,</span> <span class="token string">&quot;John&quot;</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> p2 <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Player</span><span class="token punctuation">(</span><span class="token string">&quot;2&quot;</span><span class="token punctuation">,</span> <span class="token string">&quot;Tony&quot;</span><span class="token punctuation">)</span>
+
+<span class="token comment">// create 2 items and set p1 as parent </span>
+<span class="token keyword">const</span> i1 <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Item</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+Mosx<span class="token punctuation">.</span><span class="token function">setParent</span><span class="token punctuation">(</span>i1<span class="token punctuation">,</span> p1<span class="token punctuation">)</span>
+
+<span class="token comment">// Mosx.new - short alias </span>
+<span class="token keyword">const</span> i2 <span class="token operator">=</span> Mosx<span class="token punctuation">.</span><span class="token keyword">new</span><span class="token punctuation">(</span>Item<span class="token punctuation">,</span> p1<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// add players and items to state</span>
+state<span class="token punctuation">.</span>players<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>p1<span class="token punctuation">,</span> p2<span class="token punctuation">)</span>
+state<span class="token punctuation">.</span>objects<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token string">&quot;item1&quot;</span><span class="token punctuation">,</span> i1<span class="token punctuation">)</span>
+state<span class="token punctuation">.</span>objects<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token string">&quot;item2&quot;</span><span class="token punctuation">,</span> i2<span class="token punctuation">)</span>
+
+<span class="token comment">// check state for player p1</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> p1<span class="token punctuation">.</span>id<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { </span>
+<span class="token comment">//   players: [ { id: '1', name: 'John' }, { name: 'Tony' } ],</span>
+<span class="token comment">//   objects: { item1: { created: 1603317890537 }, item2: { created: 1603317890538 }}</span>
+<span class="token comment">// }</span>
+
+<span class="token comment">// check state for player p2</span>
+<span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>Mosx<span class="token punctuation">.</span><span class="token function">getSnapshot</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> p2<span class="token punctuation">.</span>id<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">// { </span>
+<span class="token comment">//   players: [ { name: 'John' }, { id: '2', name: 'Tony' } ],</span>
+<span class="token comment">//   objects: { item1: undefined, item2: undefined }  </span>
+<span class="token comment">// }</span>
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/" class="prev router-link-active">
+        Introduction
+      </a></span> <span class="next"><a href="/mosx-api.html">
+        Mosx API
+      </a>
+      →
+    </span></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.1d47c4d1.js" defer></script><script src="/assets/js/2.4b0d1f09.js" defer></script><script src="/assets/js/7.a414f66d.js" defer></script>
+  </body>
+</html>
