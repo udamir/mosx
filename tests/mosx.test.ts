@@ -53,7 +53,7 @@ describe("Replace public property", () => {
   const value = "test value"
   tester
   .onAction(() => state.prop = value)
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get replace change for property`, () => {
       expect(change).toEqual({ path: "/prop", op: "replace", value })
     })
@@ -67,7 +67,7 @@ describe("Replace public property with private object", () => {
   Mosx.setParent(value, state)
   tester
   .onAction(() => state.prop = value)
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get replace change for property`, () => {
       expect(change).toMatchObject({ path: "/prop", op: "replace", value: c2(id, obj), oldValue })
     })
@@ -104,7 +104,7 @@ describe("Add to public array", () => {
   const value = "test value"
   tester
   .onAction(() => state.prop1.push(value))
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for array property`, () => {
       expect(change).toEqual({ path: "/prop1/0", op: "add", value })
     })
@@ -116,7 +116,7 @@ describe("Update item in public array", () => {
   const value = "test value 2"
   tester
   .onAction(() => state.prop1[0] = value)
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get remove change for array property`, () => {
       expect(change).toEqual({ path: "/prop1/0", op: "replace", value, oldValue })
     })
@@ -127,7 +127,7 @@ describe("Remove from public array", () => {
   const oldValue = state.prop1[0]
   tester
   .onAction(() => state.prop1.pop())
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get remove change for array property`, () => {
       expect(change).toEqual({ path: "/prop1/0", op: "remove", oldValue })
     })
@@ -140,7 +140,7 @@ describe("Add private object to public array", () => {
   Mosx.setParent(value, state)
   tester
   .onAction(() => state.prop1.push(value))
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for array property`, () => {
       expect(change).toMatchObject({ path: "/prop1/0", op: "add", value: c2(id, obj) })
     })
@@ -164,7 +164,7 @@ describe("Remove private object from public array", () => {
   const obj = { prop: "test value", pprop: "test2", ext: "ext" }
   tester
   .onAction(() => state.prop1.pop())
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get remove change for array property`, () => {
       expect(change).toMatchObject({ path: "/prop1/0", op: "remove", oldValue: c2(id, obj) })
     })
@@ -204,7 +204,7 @@ describe("Add to public map", () => {
   const value = "test value"
   tester
   .onAction(() => state.prop1.set(key, value))
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for map property`, () => {
       expect(change).toEqual({ path: "/prop1/" + key, op: "add", value })
     })
@@ -217,7 +217,7 @@ describe("Replace item in public map", () => {
   const value = "test value 2"
   tester
   .onAction(() => state.prop1.set(key, value))
-  .universalTrigger(2, (id: string, change: IReversibleJsonPatch) => {
+  .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get replace change for map property`, () => {
       expect(change).toEqual({ path: "/prop1/" + key, op: "replace", value, oldValue })
     })

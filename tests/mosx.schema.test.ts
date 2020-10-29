@@ -1,4 +1,5 @@
 import { IReversibleJsonPatch, mx, Mosx } from '../index'
+import { SchemaSerializer } from '../src/serializer/schema'
 import { MosxTester } from '../src/tester'
 import { IEncodedJsonPatch } from '../src/tracker.h'
 
@@ -27,6 +28,7 @@ class Client {
   public addObject(data?: any) {
     const obj = Mosx.new(DataObject, this)(data)
     this.state.objects.set(obj.id, obj)
+    return obj
   }
 
   public addCard(side: string, value: string, suit: number) {
@@ -84,8 +86,10 @@ class Card extends BaseObject {
 }
 
 const testState = new State()
-const stateTracker = Mosx.createTracker(testState)
+const stateTracker = Mosx.createTracker(testState, { serializer: SchemaSerializer, reversible: true })
 const tester = new MosxTester(stateTracker)
+
+const serializer = stateTracker.serializer as SchemaSerializer
 
 const unhandledTest = (unhandled: any[]) => {
   test("should not be unhandled patches", () => {
@@ -100,11 +104,77 @@ const c2 = testState.addClient("client2", ["2", "123"])
 tester.addListener("client1", "1")
 tester.addListener("client2", ["2", "123"])
 
+const view1 = Mosx.getSnapshot(testState, "1")
+
+const types = [
+  [ "SchemaMap", "types", "nodes" ],
+  [ "State", "clients", "objects" ],
+  [ "Client", "name" ],
+  [ "BaseObject", "id", "type", "items" ],
+  [ "DataObject", "id", "type", "items", "data" ],
+  [ "CardFace", "value", "suit" ],
+  [ "Card", "id", "type", "items", "side", "face", "cardFace" ],
+]
+
+const nodes = [
+  [ 0, 1, -1, "" ],
+  [ 1, -1, 0, "clients" ],
+  [ 2, -2, 0, "objects" ],
+  [ 3, 2, 1, "0" ],
+  [ 4, 2, 1, "1" ],
+]
+
+const schemaMap = { types, nodes }
+
+describe("Snapshot of state for client1", () => {
+  test(`should not have private/observable properties`, () => {
+    expect(view1).toHaveProperty("clients", [ { name: "client1" }, { name: "client2" } ])
+    expect(view1).toHaveProperty("objects", {})
+    expect(view1).toHaveProperty("_", schemaMap)
+  })
+})
+
+const schemaAddNodeKey = (id: string, change: IEncodedJsonPatch, value: any) => {
+  const patch = { path: `/nodes/2/${nodes[2].length}`, op: "add", value }
+  id === "client2" && nodes[2].push(value)
+
+  const { encoded, ...rest } = change
+  const decoded = serializer.decode(encoded!)
+
+  expect(rest).toMatchObject(patch)
+  expect(rest).toMatchObject(decoded)
+}
+
+const schemaAddNode = (id: string, change: IEncodedJsonPatch, value: any) => {
+  const patch = { path: `/nodes/${nodes.length}`, op: "add", value }
+  id === "client2" && nodes.push(value)
+
+  const { encoded, ...rest } = change
+  const decoded = serializer.decode(encoded!)
+
+  expect(rest).toMatchObject(patch)
+  expect(rest).toMatchObject(decoded)
+}
 
 describe("Add DataObject for client1", () => {
   const data = "test value"
   tester
   .onAction(() => c1.addObject(data))
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap node keys`, () => {
+      schemaAddNodeKey(id, change, "DataObject0")
+    })
+  })
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap nodes`, () => {
+      schemaAddNode(id, change, [5, 4, 2, 'DataObject0'])
+    })
+  })
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap nodes`, () => {
+      schemaAddNode(id, change, [6, -1, 5, 'items'])
+    })
+  })
   .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for DataObject with data property`, () => {
       expect(id).toBe("client1")
@@ -131,13 +201,21 @@ describe("Change parent public property", () => {
     test(`${id} should get replace change for private object`, () => {
       expect(id).toBe("client1")
       const patch = { path: "/objects/DataObject0/data", op: "remove", oldValue: obj0.data }
-      expect(change).toMatchObject(patch)
+
+      const { encoded, ...rest } = change
+      const decoded = serializer.decode(encoded!)
+      expect(rest).toMatchObject(patch)
+      expect(rest).toMatchObject(decoded)
     })
   })
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get replace change for private object of public map propery`, () => {
       expect(id).toBe("client2")
-      expect(change).toMatchObject({ path: "/objects/DataObject0/data", op: "add", value: obj0.data })
+      const patch = { path: "/objects/DataObject0/data", op: "add", value: obj0.data }
+      const { encoded, ...rest } = change
+      const decoded = serializer.decode(encoded!)
+      expect(rest).toMatchObject(patch)
+      expect(rest).toMatchObject(decoded)
     })
   }).run(unhandledTest)
 })
@@ -146,6 +224,26 @@ describe("Add CardObject for client1", () => {
   const face = { suit: 1, value: "A" }
   tester
   .onAction(() => c1.addCard("back", face.value, face.suit))
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap node keys`, () => {
+      schemaAddNodeKey(id, change, "Card0")
+    })
+  })
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap nodes`, () => {
+      schemaAddNode(id, change, [7, 6, 2, 'Card0'])
+    })
+  })
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap nodes`, () => {
+      schemaAddNode(id, change, [8, -1, 7, 'items'])
+    })
+  })
+  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
+    test(`${id} should get add change for schemaMap nodes`, () => {
+      schemaAddNode(id, change, [9, 5, 7, 'face'])
+    })
+  })
   .trigger((id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for Card with face property`, () => {
       expect(id).toBe("client1")
@@ -166,16 +264,26 @@ const card0 = testState.objects.get("Card0") as Card
 describe("Change parent for ard object", () => {
   tester
   .onAction(() => Mosx.setParent(card0, c2))
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get replace change for private object`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/objects/Card0/face", op: "remove", oldValue: card0.face })
+      const patch = { path: "/objects/Card0/face", op: "remove", oldValue: card0.face }
+
+      const { encoded, ...rest } = change
+      const decoded = serializer.decode(encoded!)
+      expect(rest).toMatchObject(patch)
+      expect(rest).toMatchObject(decoded)
     })
   })
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get replace change for private object of public map propery`, () => {
       expect(id).toBe("client2")
-      expect(change).toMatchObject({ path: "/objects/Card0/face", op: "add", value: card0.face })
+      const patch = { path: "/objects/Card0/face", op: "add", value: card0.face }
+
+      const { encoded, ...rest } = change
+      const decoded = serializer.decode(encoded!)
+      expect(rest).toMatchObject(patch)
+      expect(rest).toMatchObject(decoded)
     })
   }).run(unhandledTest)
 })

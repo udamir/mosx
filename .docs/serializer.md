@@ -6,13 +6,13 @@ By default all patches and snapshotes are not serialized
 
 
 The following serializers are currently avalible:
-- mpack
-- light
-- schema (will be added soon)
+- MpackSerializer
+- LightSerializer
+- SchemaSerializer
 
-## **Serializer: "mpack"**
+## **MpackSerializer**
 
-Simple serializer based on messagePack serializer. Patch converted to array format and then encoded with notepack.io serialization. DecodeMap is not required for decoding:
+Simple serializer based on messagePack. Patch converted to array format and then encoded with notepack.io serialization. DecodeMap is not required for decoding:
 
 Zero array element is used for patch.op converted to number:
 | patch.op  | op  |
@@ -36,9 +36,11 @@ Patch converted to array:
 [ 0, "/players/0", { "id": "1", "name": "John" } ]
 ```
 
-## **Serializer: "light" (advanced)**
+## **LightSerializer (advanced)**
 
-This serialize method convert patch path from string to bytes with indexes in static decode Map. So DecoreMap is required for decoding.
+Simple serializer based on messagePack and with static decodeMap. DecodeMap will added to snapshot and required for decoding. 
+
+Patch converted to array format, ```patch.path``` converted from string to bytes with indexes in static decode Map.
 The algoritms is following - patch consists of 2 parts: header and body:
 - Header includes excoded patch.op and patch.path
 - Body includes array of params and value/oldValue and encoded with notepack.io
@@ -68,11 +70,47 @@ From second byte to n + 2 path encoded:
 All map keys are not included in static encode Map as they are dynamic, so all keys added to body array.
 patch.value and patch.oldValue also added to body array and encode with notepack.io
 
-## **Serializer: "schema" (advanced)**
+## **SchemaSerializer (advanced)**
 
-This serialize algorithms is under development. The main difference from "light" version is that dynamic decode Map will be used (schema). The size of encoded patch will be reduced significantly.
+This serialize algorithms is under testing. The main difference from "light" version is that dynamic decode Map will be used (schema). The size of encoded patch is reduced significantly.
 
 ## Custom Serializer 
 
-You can build your own serializer
+You can build your own serializer extending ```Serializer``` class:
 
+```ts
+class CustomSerializer extends Serializer<T = any> {
+  // tree nodes
+  public nodes: WeakMap<any, ITreeNode>
+
+  // tracker listeneres
+  public listeneres: Set<IListener<T>>
+
+  // state tree root
+  public root: T
+
+  public onCreate(): void {
+    // on serializer create
+  }
+
+  public onChange(change: IChange, parent: ITreeNode) {
+    // on stata change
+  }
+
+  public onCreateNode(entry: ITreeNode, target: any) {
+    // on create new tree node
+  }
+
+  public onDeleteNode(entry: ITreeNode) {
+    // on delete tree node
+  }
+
+  public encode(patch: IReversibleJsonPatch, target: any): Buffer {
+    // add encode algorithms
+  }
+
+  public decode(buffer: Buffer): IReversibleJsonPatch {
+    // add decode algorithms
+  }
+}
+```

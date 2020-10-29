@@ -13,11 +13,11 @@ export abstract class Serializer<T = any> {
     this.onCreate()
   }
 
-  public onCreate(): void {}
-  public onChange(change: IChange, parent: ITreeNode) {}
-  public onCreateNode(entry: ITreeNode, target: any) {}
-  public onDeleteNode(entry: ITreeNode) {}
+  public onCreate(): void { /** */ }
+  public onChange(change: IChange, parent: ITreeNode) { /** */ }
+  public onCreateNode(entry: ITreeNode, target: any) { /** */ }
+  public onDeleteNode(entry: ITreeNode) { /** */ }
 
-  public abstract encode(patch: IReversibleJsonPatch, target: any, newNodes?: number[]): Buffer
+  public abstract encode(patch: IReversibleJsonPatch, target: any): Buffer
   public abstract decode(buffer: Buffer): IReversibleJsonPatch
 }

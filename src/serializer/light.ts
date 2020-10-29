@@ -22,10 +22,7 @@ export interface IPropSchema {
   items: string
 }
 
-
 export class LightSerializer extends Serializer {
-
-  public decodeMap: any = {}
 
   public onCreate() {
     const context = mx.$context
@@ -48,6 +45,8 @@ export class LightSerializer extends Serializer {
       }
     }
 
+    const schemaMap: ILightSchema = {}
+
     context.types.forEach(( { name, $mx } ) => {
       const propSchema: IPropsSchema = {}
 
@@ -58,13 +57,17 @@ export class LightSerializer extends Serializer {
       const meta = context.meta.get(name)
       if (!meta) { return }
 
-      this.decodeMap[name] = {
+      schemaMap[name] = {
         index: meta.index,
         parent: meta.parent,
         props: $mx.props.map((prop: any) => prop.key),
         schema: propSchema,
       }
     })
+
+    // add schema map key to state
+    this.root.constructor.$mx.props.push({ key: "_", type: "", hidden: false, getter: false })
+    Object.defineProperty(this.root, "_", { enumerable: false, writable: false, value: schemaMap })
   }
 
   public entryTypePath (entry?: ITreeNode): string[] {

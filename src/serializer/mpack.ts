@@ -4,8 +4,6 @@ import { Serializer, ITreeNode, IReversibleJsonPatch } from "../../index"
 
 export class MPackSerializer extends Serializer {
 
-  public updateDecodeMap (target: any) {}
-
   public encode (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
 
     const op = ["add", "replace", "remove"].indexOf(patch.op)
