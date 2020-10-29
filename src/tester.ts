@@ -1,4 +1,4 @@
-import { IReversibleJsonPatch, IMosxTracker } from "./tracker"
+import { IReversibleJsonPatch, IMosxTracker } from "./tracker.h"
 
 type Action = () => void
 type Trigger = (id: string, change: IReversibleJsonPatch) => void

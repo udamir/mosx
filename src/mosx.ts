@@ -1,6 +1,6 @@
 import { computed } from "mobx"
 
-import { MosxTracker, IMosxTracker, IMosxTrackerParams } from "./tracker"
+import { MosxTracker, IMosxTracker, IMosxTrackerParams } from "./internal"
 import { DefinitionType } from "./decorators"
 import { snapshot } from "./snapshot"
 import { MosxAdmin } from "./admin"

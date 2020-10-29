@@ -1,17 +1,7 @@
-import { IReversibleJsonPatch } from "./tracker"
-import * as light from "./serializer/light"
-import * as mpack from "./serializer/mpack"
-
 export interface ISchemaMeta {
   index: number
   parent: string
   ref: any
-}
-
-export interface ISerializer {
-  encode: (context: MosxContext, patch: IReversibleJsonPatch, pathItems: string[]) => Buffer
-  decode: (context: MosxContext, buffer: Buffer) => IReversibleJsonPatch
-  decodeMap: (context: MosxContext) => any
 }
 
 export class MosxContext {
@@ -22,17 +12,7 @@ export class MosxContext {
   // mosx object types index
   public index: string[] = []
 
-  // mosx schema
-  public decodeMap(serializer = "mpack"): any {
-    switch (serializer) {
-      case "light": return light.decodeMap(this)
-      case "mpack": return mpack.decodeMap(this)
-      default:
-        throw new Error(`Unknown serializer: ${serializer}`)
-    }
-  }
-
-  // add constructor to shema
+  // add constructor to schema
   public add(contructor: any) {
     this.meta.set(contructor.name, {
       index: this.types.size,
@@ -46,25 +26,5 @@ export class MosxContext {
   // check is constructor already added
   public has(constructor: any): boolean {
     return this.types.has(constructor)
-  }
-
-  public encodePatch(patch: IReversibleJsonPatch, pathItems: string[], serializer = "mpack"): Buffer {
-    switch (serializer) {
-      case "light": return light.encode(this, patch, pathItems)
-      case "mpack": return mpack.encode(this, patch, pathItems)
-      // custom serializer implementations
-      default:
-        throw new Error(`Unknown serializer: ${serializer}`)
-    }
-  }
-
-  // decode patch
-  public decodePatch(buffer: Buffer, serializer = "mpack"): IReversibleJsonPatch {
-    switch (serializer) {
-      case "light": return light.decode(this, buffer)
-      case "mpack": return mpack.decode(this, buffer)
-      default:
-        throw new Error(`Unknown serializer: ${serializer}`)
-    }
   }
 }

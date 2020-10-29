@@ -1,6 +1,10 @@
 export {
   mx,
   Mosx,
+  Serializer,
+  ITreeNode,
+  IListener,
+  IDisposer,
   PrimitiveType,
   DefinitionType,
   IMosxTracker,

@@ -1,5 +1,6 @@
 import { IReversibleJsonPatch, mx, Mosx } from '../index'
 import { MosxTester } from '../src/tester'
+import { IEncodedJsonPatch } from '../src/tracker.h'
 
 @mx.Object
 class State {
@@ -42,7 +43,7 @@ class BaseObject {
 
   constructor () {
     this.type = this.constructor.name || "BaseObject"
-    const count = Array.from(state.objects.values()).filter(({ type }) => type === this.type).length
+    const count = Array.from(testState.objects.values()).filter(({ type }) => type === this.type).length
     this.id = this.type + count
   }
 }
@@ -82,8 +83,8 @@ class Card extends BaseObject {
   }
 }
 
-const state = new State()
-const stateTracker = Mosx.createTracker(state)
+const testState = new State()
+const stateTracker = Mosx.createTracker(testState)
 const tester = new MosxTester(stateTracker)
 
 const unhandledTest = (unhandled: any[]) => {
@@ -93,8 +94,8 @@ const unhandledTest = (unhandled: any[]) => {
   })
 }
 
-const c1 = state.addClient("client1", ["1"])
-const c2 = state.addClient("client2", ["2", "123"])
+const c1 = testState.addClient("client1", ["1"])
+const c2 = testState.addClient("client2", ["2", "123"])
 
 tester.addListener("client1", "1")
 tester.addListener("client2", ["2", "123"])
@@ -104,30 +105,33 @@ describe("Add DataObject for client1", () => {
   const data = "test value"
   tester
   .onAction(() => c1.addObject(data))
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for DataObject with data property`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/objects/DataObject0", op: "add", value: { data } })
+      const patch = { path: "/objects/DataObject0", op: "add", value: { data } }
+      expect(change).toMatchObject(patch)
     })
   })
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for DataObject without data property`, () => {
       expect(id).toBe("client2")
-      expect(change).toMatchObject({ path: "/objects/DataObject0", op: "add", value: {} })
+      const patch = { path: "/objects/DataObject0", op: "add", value: {} }
+      expect(change).toMatchObject(patch)
       expect(change).not.toHaveProperty("data")
     })
   }).run(unhandledTest)
 })
 
-const obj0 = state.objects.get("DataObject0") as DataObject
+const obj0 = testState.objects.get("DataObject0") as DataObject
 
 describe("Change parent public property", () => {
   tester
   .onAction(() => Mosx.setParent(obj0, c2))
-  .trigger((id: string, change: IReversibleJsonPatch) => {
+  .trigger((id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get replace change for private object`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/objects/DataObject0/data", op: "remove", oldValue: obj0.data })
+      const patch = { path: "/objects/DataObject0/data", op: "remove", oldValue: obj0.data }
+      expect(change).toMatchObject(patch)
     })
   })
   .trigger((id: string, change: IReversibleJsonPatch) => {
@@ -139,14 +143,13 @@ describe("Change parent public property", () => {
 })
 
 describe("Add CardObject for client1", () => {
-  const value = "A"
-  const suit = 1
+  const face = { suit: 1, value: "A" }
   tester
-  .onAction(() => c1.addCard("back", value, suit))
+  .onAction(() => c1.addCard("back", face.value, face.suit))
   .trigger((id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for Card with face property`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/objects/Card0", op: "add", value: { face: { value, suit }, cardFace: null } })
+      expect(change).toMatchObject({ path: "/objects/Card0", op: "add", value: { face, cardFace: null } })
     })
   })
   .trigger((id: string, change: IReversibleJsonPatch) => {
@@ -158,7 +161,7 @@ describe("Add CardObject for client1", () => {
   }).run(unhandledTest)
 })
 
-const card0 = state.objects.get("Card0") as Card
+const card0 = testState.objects.get("Card0") as Card
 
 describe("Change parent for ard object", () => {
   tester
