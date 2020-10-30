@@ -5,10 +5,11 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 
 ## Summary:
 - Observable state with concept of a living tree
-- Multiple views of the same state (public and private parts)
+- Multiple views of the same state (private parts supported)
 - Runtime views configuration
 - Patch ([JsonPatch](http://jsonpatch.com/) format) and snapshot generation for each view
-- Custom schema generation and serialization support
+- Embeded patch serializer with compression  
+- Custom schema serialization support
 - Typescript syntax support out of the box
 - Works perfect with [MagX](https://github.com/udamir/magx) server
 
@@ -16,7 +17,7 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 
 Central in mosx is the concept of a state tree. The state tree consists of mutable objects, arrays and maps. Every object and property of state tree can be public or private. Public objects/properies can be tracing by all listeners, but private are avalible only for listeners with access. So this means that every listener can have their own view of the same state tree. Access to private object/properties can be updated in real-time.
 
-On each mutation of state automatically generate patch for all listeners in ([JsonPatch](http://jsonpatch.com/) format. Patch can be encoded via embeded serializer, or with custom serializer implementation. Snapshot of state tree is also avalible for every listener.
+On each mutation of state automatically generate patch for all listeners in ([JsonPatch](http://jsonpatch.com/) format. Patch can be encoded via embeded serializers, or with custom serializer implementation. Snapshot of state tree is also avalible for every listener.
 
 Since mosx uses MobX behind the scenes, computed properties are supported OOB. Observable properties are also supported, but hidden for listeners and can be used in computed properties.
 

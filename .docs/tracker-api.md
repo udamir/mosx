@@ -1,5 +1,7 @@
 # Tracker API
 
+## Concept
+
 Tracker instance can be created to root node (Mosx object) of state tree, then it will be avalible in all child nodes:
 ```ts
 // create new tracker
@@ -34,6 +36,9 @@ export interface IEncodedJsonPatch {
   encoded?: Buffer // only if serializer set
 }
 ```
+::: info
+Read more about [serializer](/mosx/serializer.html)
+:::
 
 Get tracker from any node of state tree:
 ```ts

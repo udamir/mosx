@@ -34,6 +34,7 @@ module.exports = {
             'overview',  
             'mosx-api',
             'tracker-api',
+            'serializer',
             'examples',
           ],  
         },
