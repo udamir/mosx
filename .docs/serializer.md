@@ -114,13 +114,13 @@ type SchemaType = [ string, ...string[] ]
 //   SchemaNode = [ id,     type,   parent, name,            items? ]
 type SchemaNode = [ number, number, number, string | number, ...string[] ]
 ```
-| index | name   | description                                |
-| ----- | ------ | ------------------------------------------ |
-| 0     | id     | node id                                    |
-| 1     | type   | Array (-1), Map (-2), Mosx type Index (0+) |
-| 2     | parent | parent node id                             |
-| 3     | name   | node name                                  |
-| 4+    | items  | map keys (if type === -2)                  |
+| index | name   | description                                  |
+| ----- | ------ | -------------------------------------------- |
+| 0     | id     | node id                                      |
+| 1     | type   | Array (-1), Map (-2), Mosx type Index (0+)   |
+| 2     | parent | parent node id                               |
+| 3     | index  | array index / map key index / property index |
+| 4+    | items  | map keys (if type === -2)                    |
 
 ### Patch format
 
@@ -143,12 +143,12 @@ Zero array element ```op``` is used to set patch type (state or schema) and for 
 
 #### State patch format:
 
-| index | name   | description                                                                    |
-| ----- | ------ | ------------------------------------------------------------------------------ |
-| 0     | op     | patch.op                                                                       |
-| 1     | id     | schema node id                                                                 |
-| 2     | prop   | index of node type                                                             |
-| 3+    | values | patch.value (if not remove operation) and patch.oldValue (if reversable patch) |
+| index | name   | description                                                          |
+| ----- | ------ | -------------------------------------------------------------------- |
+| 0     | op     | patch.op                                                             |
+| 1     | id     | schema node id                                                       |
+| 2     | prop   | index of node type                                                   |
+| 3+    | values | patch.value (if not remove) and patch.oldValue (if reversable patch) |
 
 #### Schema patch format:
 
@@ -158,7 +158,6 @@ Zero array element ```op``` is used to set patch type (state or schema) and for 
 | 1     | index    | nodes (or types) array index             |
 | 2     | keyIndex | node (or type) array item                |
 | 3     | value    | patch.value (if not remove operation)    |
-
 
 ### Encode example
 
@@ -172,10 +171,10 @@ schema:
     [ 'Client',    'name', "x", "y" ], // 2 -> Client type
   ],
   nodes: [
-//  [ id, type,            parent,               name      ]
-    [ 0,  1,  /* State */  -1, /* null */        ''        ],    // id=0 -> state (State)
-    [ 1,  -1, /* Array */  0,  /* "/" */         'clients' ],    // id=1 -> state.clients (Array)
-    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0        ],     // id=2 -> state.clients[0] (Client)
+//  [ id, type,            parent,               index      ]
+    [ 0,  1,  /* State */  -1, /* null */        -1 /* no index */  ],    // id=0 -> state (State)
+    [ 1,  -1, /* Array */  0,  /* "/" */         0 /* prop index */ ],    // id=1 -> state.clients (Array)
+    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0 /* array index */],     // id=2 -> state.clients[0] (Client)
   ]
 }
 ```
@@ -209,9 +208,9 @@ schema:
   ],
   nodes: [
 //  [ id, type,            parent,               name      ]
-    [ 0,  1,  /* State */  -1, /* null */        ''        ],    // id=0 -> state (State)
-    [ 1,  -1, /* Array */  0,  /* "/" */         'clients' ],    // id=1 -> state.clients (Array)
-    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0        ],     // id=2 -> state.clients[0] (Client)
+    [ 0,  1,  /* State */  -1, /* null */        -1 /* no index */  ],    // id=0 -> state (State)
+    [ 1,  -1, /* Array */  0,  /* "/" */         0 /* prop index */ ],    // id=1 -> state.clients (Array)
+    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0 /* array index */],     // id=2 -> state.clients[0] (Client)
   ]
 }
 ```

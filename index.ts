@@ -2,6 +2,9 @@ export {
   mx,
   Mosx,
   Serializer,
+  SchemaSerializer,
+  MPackSerializer,
+  LightSerializer,
   ITreeNode,
   IListener,
   IDisposer,
@@ -13,4 +16,5 @@ export {
   JsonPatchOp,
   IJsonPatch,
   IReversibleJsonPatch,
+  IEncodedJsonPatch,
 } from "./src/internal"

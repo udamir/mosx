@@ -1,6 +1,7 @@
 import * as notepack from "notepack.io"
 
-import { Serializer, ITreeNode, IReversibleJsonPatch } from "../../index"
+import { ITreeNode, IReversibleJsonPatch } from "../internal"
+import { Serializer } from "."
 
 export class MPackSerializer extends Serializer {
 

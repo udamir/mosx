@@ -1,6 +1,7 @@
 import * as notepack from "notepack.io"
 
-import { Serializer, ITreeNode, IReversibleJsonPatch, mx } from "../../index"
+import { ITreeNode, IReversibleJsonPatch, mx } from "../internal"
+import { Serializer } from "."
 
 export interface ILightSchema {
   [name: string]: ISchemaItem

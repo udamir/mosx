@@ -1,27 +1,65 @@
 import { ObservableMap, ObservableSet } from "mobx"
 import * as notepack from "notepack.io"
 
-import { Serializer, ITreeNode, IReversibleJsonPatch, Mosx, mx } from "../../index"
+import { ITreeNode, IReversibleJsonPatch, Mosx, mx } from "../internal"
 import { IChange, IJsonPatch, IMosxTracker } from "../internal"
+import { Serializer } from "."
+import { JsonPatchOp } from "../tracker.h"
+
+const NODE_ARRAY_TYPE = -1
+const NODE_MAP_TYPE = -2
 
 //   SchemaType = [ name,   props    ]
 type SchemaType = [ string, ...string[] ]
 
-//   SchemaNode = [ id,     type,   parent, name,            items? ]
-type SchemaNode = [ number, number, number, string | number, ...string[] ]
-interface ISchemaNodeObject {
+interface ISchemaType {
+  name: string
+  props: string[]
+}
+
+const schemaType = (type: SchemaType = [] as any): ISchemaType => ({
+  name: type[0],
+  props: type.slice(1),
+})
+
+//   SchemaNode = [ id,     type,   parent, index,  items? ]
+type SchemaNode = [ number, number, number, number, ...string[] ]
+
+interface ISchemaNode {
   id: number
   type: number
   parent: number
-  name: number | string
-  items?: string[]
+  index: number
+  items: string[]
 }
+
+const schemaNode = (node: SchemaNode = [] as any): ISchemaNode => ({
+  id: node[0],
+  type: node[1],
+  parent: node[2],
+  index: node[3],
+  items: node.slice(4) as string[],
+})
 
 //   SchemaPatch = [ op,     id,     prop,   value/oldValue ]
 type SchemaPatch = [ number, number, number, any?, any? ]
 
+interface ISchemaPatch {
+  op: number
+  id: number
+  prop: number
+  values: any[]
+}
+
+const schemaPatch = (patch: SchemaPatch = [] as any): ISchemaPatch => ({
+  op: patch[0],
+  id: patch[1],
+  prop: patch[2],
+  values: patch.slice(3),
+})
+
 @mx.Object
-export class SchemaMap {
+class SchemaMap {
   // all mosx types
   @mx types: Array<SchemaType> = []
   // state tree nodes
@@ -36,30 +74,76 @@ export class SchemaMap {
     return type ? type.slice(1) : []
   }
 
-  public node(id: number): SchemaNode & ISchemaNodeObject | undefined {
-    const node = this.nodes.find((n) => n[0] === id) as SchemaNode & ISchemaNodeObject | undefined
-    if (!node) { return }
-    node.id = node[0]
-    node.type = node[1]
-    node.parent = node[2]
-    node.name = node[3]
-    node.items = node.slice(4) as string[]
-    return node
+  public nodeName(sn: SchemaNode | ISchemaNode): string | number {
+    const node = Array.isArray(sn) ? schemaNode(sn) : sn
+    const parent = this.node(node.parent)
+    if (!parent) {
+      return ""
+    } else if (parent.type === NODE_ARRAY_TYPE) {
+      return node.index
+    } else if (parent.type === NODE_MAP_TYPE) {
+      return parent.items[node.index]
+    } else {
+      const { props } = schemaType(this.types[parent.type])
+      return props[node.index]
+    }
   }
 
-  public nodePath(node: ISchemaNodeObject) {
+  public nodeIndex(parentId: number, name: string): number {
+    const parent = this.node(parentId)
+    if (!parent) {
+      return -1
+    } else if (parent.type === NODE_MAP_TYPE) {
+      return parent.items.indexOf(name)
+    } else if (parent.type === NODE_ARRAY_TYPE) {
+      return +name
+    } else {
+      const props = this.typeProps(parent.type)
+      return props.indexOf(name)
+    }
+  }
+
+  public node(id: number): ISchemaNode | undefined {
+    const node = this.nodes.find((n) => n[0] === id)
+    return node && schemaNode(node)
+  }
+
+  public nodePath(sn: SchemaNode | ISchemaNode) {
+    let node = Array.isArray(sn) ? schemaNode(sn) : sn
     const pathArr = []
     while (!!node) {
-      pathArr.push(node.name)
+      pathArr.push(this.nodeName(node))
       node = this.node(node.parent)!
     }
     return pathArr.reverse().join("/")
   }
+
+  public childNode(sn: SchemaNode | ISchemaNode | undefined, name: string | number) {
+    if (!sn) {
+      return this.findNode({ parent: -1 })
+    }
+    const node = Array.isArray(sn) ? schemaNode(sn) : sn
+    if (node.type === NODE_ARRAY_TYPE) {
+      return this.findNode({ parent: node.id, index: +name })
+    } else if (node.type === NODE_MAP_TYPE) {
+      return this.findNode({ parent: node.id, index: node.items.indexOf(name as string) })
+    } else {
+      const { props } = schemaType(this.types[node.type])
+      return this.findNode({ parent: node.id, index: props.indexOf(name as string) })
+    }
+  }
+
+  public findNode(query: { [key: string]: any }): ISchemaNode | undefined {
+    const sn = this.nodes.find((n) => {
+      const node = schemaNode(n) as any
+      return !Object.keys(query).find((key) => node[key] !== query[key])
+    })
+    return sn && schemaNode(sn)
+  }
 }
 
-export class SchemaSerializer extends Serializer {
-
-  public tracker!: IMosxTracker<SchemaMap>
+class SchemaPack {
+  constructor (public schema: SchemaMap) { }
 
   public encodeSchemaPatch(patch: IJsonPatch): SchemaPatch {
     // split path to elements
@@ -72,32 +156,157 @@ export class SchemaSerializer extends Serializer {
     const opIndex = ["add", "replace", "remove"].indexOf(patch.op) - (type === "nodes" ? 3 : 6)
 
     // return SchemaPatch
-    return [ opIndex, +index, +prop, patch.value ]
+    return [ opIndex, +index, prop === undefined ? -1 : +prop, patch.value ]
   }
 
-  public decodeSchemaPatch(schmaPatch: SchemaPatch): IJsonPatch {
-    const [opIndex, index, prop, value] = schmaPatch
+  public decodeSchemaPatch(sp: SchemaPatch, prefix = ""): IJsonPatch {
+    const patch = schemaPatch(sp)
 
     // set JsonPatch operation
-    const op = ["add", "replace", "remove"][opIndex + (opIndex < -3 ? 6 : 3)] as any
+    const op = ["add", "replace", "remove"][patch.op + (patch.op < -3 ? 6 : 3)] as any
 
     // set path elements
-    const pathArr = [, opIndex < -3 ? "types" : "nodes", index]
-    if (prop) { pathArr.push(prop) }
+    const pathArr = [, patch.op < -3 ? "types" : "nodes", patch.id]
+    if (patch.prop >= 0) { pathArr.push(patch.prop) }
+
+    const jsonPatch: IJsonPatch = { op, path: prefix + pathArr.join("/") }
+
+    if (patch.values[0] !== undefined) {
+      jsonPatch.value = patch.values[0]
+    }
 
     // return JsonPatch
-    return { op, path: pathArr.join("/"), value }
+    return jsonPatch
   }
+
+  public encodeNode (snapshot: any, sn: ISchemaNode, name: string | number): any[] {
+    const node = name ? this.schema.childNode(sn, name) : sn
+    if (!node || !snapshot) { return snapshot }
+
+    if (node.type === -2) {
+      name = this.schema.nodeName(node)
+      return node.items!.map((key: string) => this.encodeNode(snapshot[key], node, name))
+    } else if (node.type === -1) {
+      return snapshot.map((item: any, i: number) => this.encodeNode(item, node, i))
+    } else {
+      const props = this.schema.typeProps(node.type)
+      return props.map((key) => this.encodeNode(snapshot[key], node, key))
+    }
+  }
+
+  public decodeNode (nodeId: any, encoded: any[]): any {
+    const node = this.schema.node(nodeId)
+    if (!node || !encoded) { return encoded }
+
+    if (node.type === NODE_ARRAY_TYPE) {
+      return encoded.map((item, i) => {
+        const itemNode = this.schema.childNode(node, i)
+        return this.decodeNode(itemNode ? itemNode.id : -1, item)
+      })
+    } else {
+      const result: any = {}
+      const keys = node.type === NODE_MAP_TYPE ? node.items : this.schema.typeProps(node.type)
+      keys.forEach((key: string, i: number) => {
+        const itemNode = this.schema.childNode(node, key)
+        const value = this.decodeNode(itemNode ? itemNode.id : -1, encoded[i])
+        if (value === undefined) { return }
+        result[key] = value
+      })
+      return result
+    }
+  }
+
+  public encodePatch (patch: IReversibleJsonPatch): Buffer {
+
+    const pathArr = patch.path === "/" ? [""] : patch.path.split("/")
+
+    let i = -1
+    let node: ISchemaNode | undefined
+    while (++i < pathArr.length) {
+      const child = this.schema.childNode(node, pathArr[i] || "")
+      if (!child) { break }
+      node = child
+    }
+
+    if (!node) {
+      throw new Error(`Wrong patch path: ${patch.path}`)
+    }
+
+    const op = ["add", "replace", "remove"].indexOf(patch.op)
+    const props = this.schema.typeProps(node.type)
+    const propIndex = props.indexOf(pathArr[i])
+
+    const data: SchemaPatch = [ op, node.id, propIndex ]
+
+    if (patch.op !== "remove") {
+      data.push(this.encodeNode(patch.value, node, pathArr[i]))
+    }
+    if (patch.op !== "add" && "oldValue" in patch) {
+      data.push(this.encodeNode(patch.oldValue, node, pathArr[i]))
+    }
+
+    return notepack.encode(data)
+  }
+
+  public decodePatch (buffer: Buffer) {
+
+    const [opIndex, entryId, propIndex, ...values] = notepack.decode<SchemaPatch>(buffer)
+
+    if (opIndex < 0) {
+      // decode schemaMap patch
+      return this.decodeSchemaPatch([opIndex, entryId, propIndex, ...values], "")
+    }
+
+    const node = this.schema.node(entryId)
+    if (!node) {
+      throw new Error(`Cannot decode patch - schema for node with id ${entryId} not found`)
+    }
+    const path = this.schema.nodePath(node)
+    const props = this.schema.typeProps(node.type)
+
+    const patch: any = {
+      op: ["add", "replace", "remove"][opIndex],
+      path: path + (propIndex >= 0 ? "/" + props[propIndex] : "")
+    }
+
+    const child = this.schema.findNode({ parent: entryId, index: propIndex })
+    const nodeId = child ? child.id : propIndex < 0 && entryId || -1
+
+    if (values.length && patch.op !== "remove") {
+      patch.value = this.decodeNode(nodeId, values.reverse().pop())
+    }
+
+    if (values.length && patch.op !== "add") {
+      patch.oldValue = this.decodeNode(nodeId, values.pop())
+    }
+
+    if (values.length) {
+      throw new Error(`Unhandled params: ${values.toString()}`)
+    }
+
+    return patch
+  }
+}
+
+export class SchemaSerializer extends Serializer {
+
+  public tracker!: IMosxTracker<SchemaMap>
+  public schemaPack!: SchemaPack
 
   public onCreate() {
     // create schema map
     const schemaMap = new SchemaMap()
 
+    this.schemaPack = new SchemaPack(schemaMap)
+
     // track schema map changes
     this.tracker = Mosx.createTracker(schemaMap)
     this.tracker.onPatch((patch, obj, root) => {
       // encode schema paches
-      patch.encoded = notepack.encode(this.encodeSchemaPatch(patch))
+      const encoded = this.schemaPack.encodeSchemaPatch(patch)
+      // console.log(patch)
+      // console.log(encoded)
+      patch.encoded = notepack.encode(encoded)
 
       // forward patches to all listeners
       this.listeneres.forEach((listener) => {
@@ -118,29 +327,30 @@ export class SchemaSerializer extends Serializer {
   }
 
   public onCreateNode(entry: ITreeNode, target: any) {
-    const schemaMap = this.root._ as SchemaMap
+    const schema = this.root._ as SchemaMap
     const parentId = entry.parent ? entry.parent.id : -1
-    const name = entry.path
+    const index = schema.nodeIndex(parentId, entry.path)
 
     if (target instanceof ObservableMap) {
       // add map node to schema
-      schemaMap.nodes.push([ entry.id, -2, parentId, name, ...target.keys() ])
+      schema.nodes.push([ entry.id, NODE_MAP_TYPE, parentId, index, ...target.keys() ])
     } else if (target instanceof ObservableSet) {
-      // TODO
+      // TODO add ObservableSet
     } else if (Array.isArray(target)) {
       // add array node to schema
-      schemaMap.nodes.push([ entry.id, -1, parentId, name ])
+      schema.nodes.push([ entry.id, NODE_ARRAY_TYPE, parentId, index ])
     } else if (target instanceof Mosx) {
       // add mosx node to schema
-      schemaMap.nodes.push([ entry.id, schemaMap.typeIndex(entry.meta.type!), parentId, name ])
+      schema.nodes.push([ entry.id, schema.typeIndex(entry.meta.type!), parentId, index ])
     }
   }
 
   public onDeleteNode(entry: ITreeNode) {
     const schemaMap = this.root._ as SchemaMap
-    const index = schemaMap.nodes.findIndex((n) => n[0] === entry.id)
-    if (index < 0) { return }
-    schemaMap.nodes.splice(index, 1)
+    // TODO: delete schema nodes
+    // const index = schemaMap.nodes.findIndex((n) => n[0] === entry.id)
+    // if (index < 0) { return }
+    // schemaMap.nodes.splice(index, 1)
   }
 
   public onChange(change: IChange) {
@@ -149,158 +359,21 @@ export class SchemaSerializer extends Serializer {
       const entry = this.nodes.get(change.object)!
       const key = (change as any).name
 
-      const schemaNode = schemaMap.node(entry.id)!
-      const keys = schemaNode.items
-      if (!keys) {
-        schemaNode.push(...change.object.keys())
+      const node = schemaMap.nodes.find((n) => n[0] === entry.id)!
+      const keys = node.slice(4)
+      if (!keys.length) {
+        node.push(...change.object.keys())
       } else if (!keys.includes(key)) {
-        schemaNode.push(key)
+        node.push(key)
       }
     }
-  }
-
-  private encodeNode (snapshot: any, target: any): any[] {
-    const schemaMap = this.root._ as SchemaMap
-    const entry = this.nodes.get(target)
-    if (!entry || !snapshot) { return snapshot }
-
-    if (target instanceof ObservableMap) {
-      const keys = schemaMap.node(entry.id)!.items || []
-      return keys.map((key: string) => this.encodeNode(snapshot[key], (target as any)[key]))
-    } else if (Array.isArray(target)) {
-      return target.map((item, i) => this.encodeNode(snapshot[i], item))
-    } else if (target instanceof Mosx) {
-      return entry.meta.props.map(({ key }) => this.encodeNode(snapshot[key], (target as any)[key]))
-    } else {
-      return snapshot
-    }
-  }
-
-  private decodeNode (nodeId: any, snapshot: any[]): any {
-    const schemaMap = this.root._ as SchemaMap
-
-    const node = schemaMap.node(nodeId)
-    if (!node || !snapshot) { return snapshot }
-    const [ id, type ] = node
-
-    if (type === -1) {
-      return snapshot.map((item, i) => {
-        const itemNode = schemaMap.nodes.find((n) => n[2] === id && n[3] === i)
-        return this.decodeNode(itemNode ? itemNode[0] : -1, item)
-      })
-    } else {
-      const result: any = {}
-      const keys = type === -2 ? node.items || [] : schemaMap.typeProps(type)
-      keys.forEach((key: string, i: number) => {
-        const itemNode = schemaMap.nodes.find((n) => n[2] === id && n[3] === key)
-        result[key] = this.decodeNode(itemNode ? itemNode[0] : -1, snapshot[i])
-      })
-      return result
-    }
-  }
-
-  public encodeSnapshot(snapshot: any, object: any): Buffer {
-
-    const entry = this.nodes.get(object)
-    if (!entry) {
-      throw new Error(`Cannot get encoded snapshot - Mosx object required!`)
-    }
-
-    return notepack.encode([entry.id, this.encodeNode(snapshot, object)])
-  }
-
-  public decodeSnapshot(buffer: Buffer): any {
-
-    const [id, data] = notepack.decode(buffer)
-    return this.decodeNode(id, data)
-  }
-
-  public buildPath(entry: ITreeNode | undefined): string {
-    if (!entry) { return "" }
-    const res: string[] = []
-    while (entry.parent) {
-      res.push(entry.path)
-      entry = entry.parent
-    }
-    return "/" + res.reverse().join("/")
-  }
-
-  public treeNodeObject(entry: ITreeNode): any {
-    if (!entry) { return this.root }
-    const res: string[] = []
-    while (entry.parent) {
-      res.push(entry.path)
-      entry = entry.parent
-    }
-    let obj = this.root
-    while(res.length) {
-      const key = res.pop() as string
-      if (Array.isArray(obj)) {
-        obj = obj[+key]
-      } else if (obj instanceof ObservableMap) {
-        obj = obj.get(key)
-      } else {
-        obj = obj[key]
-      }
-    }
-    return obj
   }
 
   public encode (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
-
-    const op = ["add", "replace", "remove"].indexOf(patch.op)
-
-    const path = this.buildPath(entry)
-    const key = patch.path.slice(path.length + 1)
-
-    const index = entry.meta ? entry.meta.props.findIndex((prop) => prop.key === key) : -1
-
-    const data: SchemaPatch = [ op, entry.id, index ]
-    const target = this.treeNodeObject(entry)
-
-    if (patch.op !== "remove") {
-      data.push(path === patch.path ? this.encodeNode(patch.value, target) : patch.value)
-    }
-    if (patch.op !== "add" && "oldValue" in patch) {
-      data.push(path === patch.path ? this.encodeNode(patch.oldValue, target) : patch.oldValue)
-    }
-
-    return notepack.encode(data)
+    return this.schemaPack.encodePatch(patch)
   }
 
   public decode (buffer: Buffer) {
-
-    const [opIndex, entryId, propIndex, ...values] = notepack.decode<SchemaPatch>(buffer)
-
-    if (opIndex < 0) {
-      return this.decodeSchemaPatch([opIndex, entryId, propIndex, ...values])
-    }
-
-    const schemaMap = this.root._ as SchemaMap
-    const node = schemaMap.node(entryId)
-    if (!node) {
-      throw new Error(`Cannot decode patch - schema for node with id ${entryId} not found`)
-    }
-    const path = schemaMap.nodePath(node)
-    const props = schemaMap.typeProps(node.type)
-
-    const patch: any = {
-      op: ["add", "replace", "remove"][opIndex],
-      path: path + (propIndex >= 0 ? "/" + props[propIndex] : "")
-    }
-
-    if (values.length && patch.op !== "remove") {
-      patch.value = propIndex < 0 ? this.decodeNode(entryId, values.reverse().pop()) : values.reverse().pop()
-    }
-
-    if (values.length && patch.op !== "add") {
-      patch.oldValue = propIndex < 0 ?  this.decodeNode(entryId, values.pop()) : values.pop()
-    }
-
-    if (values.length) {
-      throw new Error(`Unhandled params: ${values.toString()}`)
-    }
-
-    return patch
+    return this.schemaPack.decodePatch(buffer)
   }
 }

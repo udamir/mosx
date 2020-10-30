@@ -117,11 +117,11 @@ const types = [
 ]
 
 const nodes = [
-  [ 0, 1, -1, "" ],
-  [ 1, -1, 0, "clients" ],
-  [ 2, -2, 0, "objects" ],
-  [ 3, 2, 1, "0" ],
-  [ 4, 2, 1, "1" ],
+  [ 0,  1, -1, -1 ],
+  [ 1, -1,  0,  0 ],
+  [ 2, -2,  0,  1 ],
+  [ 3,  2,  1,  0 ],
+  [ 4,  2,  1,  1 ],
 ]
 
 const schemaMap = { types, nodes }
@@ -167,12 +167,12 @@ describe("Add DataObject for client1", () => {
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [5, 4, 2, 'DataObject0'])
+      schemaAddNode(id, change, [5, 4, 2, 0])
     })
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [6, -1, 5, 'items'])
+      schemaAddNode(id, change, [6, -1, 5, 2])
     })
   })
   .trigger((id: string, change: IEncodedJsonPatch) => {
@@ -231,17 +231,17 @@ describe("Add CardObject for client1", () => {
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [7, 6, 2, 'Card0'])
+      schemaAddNode(id, change, [7, 6, 2, 1])
     })
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [8, -1, 7, 'items'])
+      schemaAddNode(id, change, [8, -1, 7, 2])
     })
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [9, 5, 7, 'face'])
+      schemaAddNode(id, change, [9, 5, 7, 4])
     })
   })
   .trigger((id: string, change: IReversibleJsonPatch) => {
