@@ -4,7 +4,6 @@ import * as notepack from "notepack.io"
 import { ITreeNode, IReversibleJsonPatch, Mosx, mx } from "../internal"
 import { IChange, IJsonPatch, IMosxTracker } from "../internal"
 import { Serializer } from "."
-import { JsonPatchOp } from "../tracker.h"
 
 const NODE_ARRAY_TYPE = -1
 const NODE_MAP_TYPE = -2
@@ -65,8 +64,28 @@ class SchemaMap {
   // state tree nodes
   @mx nodes: Array<SchemaNode> = []
 
-  public typeIndex(typeName: string): number {
-    return this.types.findIndex((t) => t[0] === typeName)
+  public addType(name: string, props: string[]) {
+    this.types.push([name, ...props])
+  }
+
+  public addNode(id: number, type: number | string, parentId: number, index: number | string, items: string[] = []) {
+    type = typeof type === "string" ? this.types.findIndex((n) => n[0] === type) : type
+    index = typeof index === "string" ? this.nodeIndex(parentId, index) : index
+
+    this.nodes.push([id, type, parentId, index, ...items])
+  }
+
+  public addNodeKeys(id: number, keys: string | string[]) {
+    keys = Array.isArray(keys) ? keys : [keys]
+    const node = this.nodes.find((n) => n[0] === id)
+    if (!node) { return }
+    node.push(...keys)
+  }
+
+  public deleteNode(id: number) {
+    const index = this.nodes.findIndex((n) => n[0] === id)
+    if (index < 0) { return }
+    this.nodes.splice(index, 1)
   }
 
   public typeProps(index: number): string[] {
@@ -292,15 +311,16 @@ export class SchemaSerializer extends Serializer {
 
   public tracker!: IMosxTracker<SchemaMap>
   public schemaPack!: SchemaPack
+  public deleted: Set<number> = new Set()
 
   public onCreate() {
     // create schema map
-    const schemaMap = new SchemaMap()
+    const schema = new SchemaMap()
 
-    this.schemaPack = new SchemaPack(schemaMap)
+    this.schemaPack = new SchemaPack(schema)
 
     // track schema map changes
-    this.tracker = Mosx.createTracker(schemaMap)
+    this.tracker = Mosx.createTracker(schema)
     this.tracker.onPatch((patch, obj, root) => {
       // encode schema paches
       const encoded = this.schemaPack.encodeSchemaPatch(patch)
@@ -318,54 +338,55 @@ export class SchemaSerializer extends Serializer {
     mx.$context.types.forEach(( { name, $mx } ) => {
       const meta = mx.$context.meta.get(name)
       if (!meta) { return }
-      schemaMap.types.push([ name, ...$mx.props.map((prop: any) => prop.key) ])
+      schema.addType(name, $mx.props.map((prop: any) => prop.key))
     })
 
     // add schema map key to state
     this.root.constructor.$mx.props.push({ key: "_", type: "", hidden: false, getter: false })
-    Object.defineProperty(this.root, "_", { enumerable: false, writable: false, value: schemaMap })
+    Object.defineProperty(this.root, "_", { enumerable: false, writable: false, value: schema })
   }
 
   public onCreateNode(entry: ITreeNode, target: any) {
     const schema = this.root._ as SchemaMap
     const parentId = entry.parent ? entry.parent.id : -1
-    const index = schema.nodeIndex(parentId, entry.path)
 
     if (target instanceof ObservableMap) {
       // add map node to schema
-      schema.nodes.push([ entry.id, NODE_MAP_TYPE, parentId, index, ...target.keys() ])
+      schema.addNode(entry.id, NODE_MAP_TYPE, parentId, entry.path, [...target.keys()])
     } else if (target instanceof ObservableSet) {
       // TODO add ObservableSet
     } else if (Array.isArray(target)) {
       // add array node to schema
-      schema.nodes.push([ entry.id, NODE_ARRAY_TYPE, parentId, index ])
+      schema.addNode(entry.id, NODE_ARRAY_TYPE, parentId, entry.path)
     } else if (target instanceof Mosx) {
       // add mosx node to schema
-      schema.nodes.push([ entry.id, schema.typeIndex(entry.meta.type!), parentId, index ])
+      schema.addNode(entry.id, entry.meta.type!, parentId, entry.path)
     }
   }
 
   public onDeleteNode(entry: ITreeNode) {
-    const schemaMap = this.root._ as SchemaMap
-    // TODO: delete schema nodes
-    // const index = schemaMap.nodes.findIndex((n) => n[0] === entry.id)
-    // if (index < 0) { return }
-    // schemaMap.nodes.splice(index, 1)
+    this.deleted.add(entry.id)
   }
 
-  public onChange(change: IChange) {
+  public beforeChange(change: IChange) {
     if (change.object instanceof ObservableMap) {
-      const schemaMap = this.root._ as SchemaMap
+      const schema = this.root._ as SchemaMap
       const entry = this.nodes.get(change.object)!
       const key = (change as any).name
 
-      const node = schemaMap.nodes.find((n) => n[0] === entry.id)!
-      const keys = node.slice(4)
-      if (!keys.length) {
-        node.push(...change.object.keys())
-      } else if (!keys.includes(key)) {
-        node.push(key)
+      const node = schema.node(entry.id)!
+      if (!node.items.length) {
+        schema.addNodeKeys(node.id, [...change.object.keys()])
+      } else if (!node.items.includes(key)) {
+        schema.addNodeKeys(node.id, key)
       }
+    }
+  }
+
+  public afterChange(change: IChange) {
+    if (this.deleted.size > 0) {
+      const schema = this.root._ as SchemaMap
+      this.deleted.forEach((id) => schema.deleteNode(id))
     }
   }
 

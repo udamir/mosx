@@ -284,14 +284,11 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     let path = "/" + this.buildPath(parent)
     path = path !== "/" ? path + "/" : "/"
 
-    // notify serializer
-    this.serializer && this.serializer.onChange(change, parent)
-
     switch (change.type) {
       case "add": return this.processAddChange(change, parent, path)
       case "update": return this.processUpdateChange(change, parent, path)
       case "delete": case "remove": return this.processDeleteChange(change, parent, path)
-      case "splice": this.processSpliceChange(change, parent, path)
+      case "splice": return this.processSpliceChange(change, parent, path)
     }
   }
 
@@ -321,15 +318,6 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (!entry) {
       // create entry
       entry = this.createEntry(node, parent, path)
-      this.nodes.set(node, entry)
-
-      // notify serializer
-      this.serializer && this.serializer.onCreateNode(entry, node)
-
-      // add default parent (root) to mosx object tagsTree
-      if (node !== this.root && node instanceof Mosx && !Mosx.getParent(node)) {
-        Mosx.setParent(node, this.root)
-      }
 
       mobx.entries(node).forEach(([key, value]) => {
         this.observeRecursively(value, entry, key)
@@ -341,7 +329,15 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
   private createEntry(node: any, parent: ITreeNode | undefined, path: string) {
     // observe node
     const dispose = mobx.observe(node, (change: IChange) => {
-      this.processChange(change, this.nodes.get(change.object)!)
+      const parentNode = this.nodes.get(change.object)!
+
+      // notify serializer
+      this.serializer && this.serializer.beforeChange(change, parentNode)
+
+      this.processChange(change, parentNode)
+
+      // notify serializer
+      this.serializer && this.serializer.afterChange(change, parentNode)
     })
     // current node metadata
     const meta: any = Mosx.meta(node)
@@ -356,8 +352,18 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     // collect node tags or parent node tags
     const tags: string[] = Array.from(Mosx.getTags(node) || parent && parent.tags || [])
 
+    const entry = { id: this.lastId++, parent, path, dispose, meta, hidden, tags }
+    this.nodes.set(node, entry)
+
+    // notify serializer
+    this.serializer && this.serializer.onCreateNode(entry, node)
+
+    // add default parent (root) to mosx object tagsTree
+    if (node !== this.root && node instanceof Mosx && !Mosx.getParent(node)) {
+      Mosx.setParent(node, this.root)
+    }
     // store endtry
-    return { id: this.lastId++, parent, path, dispose, meta, hidden, tags }
+    return entry
   }
 
   private unobserveRecursively(node: any) {

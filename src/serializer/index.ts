@@ -14,7 +14,8 @@ export abstract class Serializer<T = any> {
   }
 
   public onCreate(): void { /** */ }
-  public onChange(change: IChange, parent: ITreeNode) { /** */ }
+  public beforeChange(change: IChange, parent: ITreeNode) { /** */ }
+  public afterChange(change: IChange, parent: ITreeNode) { /** */ }
   public onCreateNode(entry: ITreeNode, target: any) { /** */ }
   public onDeleteNode(entry: ITreeNode) { /** */ }
 
