@@ -1,5 +1,6 @@
 import { IReversibleJsonPatch, mx, Mosx } from '../index'
 import { SchemaSerializer } from '../src/serializer/schema'
+import { PatchPack, SchemaNode, SchemaType } from 'patchpack'
 import { MosxTester } from '../src/tester'
 import { IEncodedJsonPatch } from '../src/tracker.h'
 
@@ -105,9 +106,10 @@ tester.addListener("client1", "1")
 tester.addListener("client2", ["2", "123"])
 
 const view1 = Mosx.getSnapshot(testState, "1")
+const view2 = Mosx.getSnapshot(testState, ["2", "123"])
 
-const types = [
-  [ "SchemaMap", "types", "nodes" ],
+const types: SchemaType[] = [
+  [ "Schema", "types", "nodes" ],
   [ "State", "clients", "objects" ],
   [ "Client", "name" ],
   [ "BaseObject", "id", "type", "items" ],
@@ -116,7 +118,7 @@ const types = [
   [ "Card", "id", "type", "items", "side", "face", "cardFace" ],
 ]
 
-const nodes = [
+const nodes: SchemaNode[] = [
   [ 0,  1, -1, -1 ],
   [ 1, -1,  0,  0 ],
   [ 2, -2,  0,  1 ],
@@ -125,6 +127,10 @@ const nodes = [
 ]
 
 const schemaMap = { types, nodes }
+const decoder: any = {
+  client1: new PatchPack(view1._),
+  client2: new PatchPack(view2._)
+}
 
 describe("Snapshot of state for client1", () => {
   test(`should not have private/observable properties`, () => {
@@ -139,7 +145,7 @@ const schemaAddNodeKey = (id: string, change: IEncodedJsonPatch, value: any) => 
   id === "client2" && nodes[2].push(value)
 
   const { encoded, ...rest } = change
-  const decoded = serializer.decode(encoded!)
+  const decoded = decoder[id].decodePatch(encoded!)
 
   expect(rest).toMatchObject(patch)
   expect(rest).toMatchObject(decoded)
@@ -150,7 +156,7 @@ const schemaAddNode = (id: string, change: IEncodedJsonPatch, value: any) => {
   id === "client2" && nodes.push(value)
 
   const { encoded, ...rest } = change
-  const decoded = serializer.decode(encoded!)
+  const decoded = decoder[id].decodePatch(encoded!)
 
   expect(rest).toMatchObject(patch)
   expect(rest).toMatchObject(decoded)
@@ -161,13 +167,8 @@ describe("Add DataObject for client1", () => {
   tester
   .onAction(() => c1.addObject(data))
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
-    test(`${id} should get add change for schemaMap node keys`, () => {
-      schemaAddNodeKey(id, change, "DataObject0")
-    })
-  })
-  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [5, 4, 2, 0])
+      schemaAddNode(id, change, [5, 4, 2, "DataObject0"])
     })
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
@@ -203,7 +204,7 @@ describe("Change parent public property", () => {
       const patch = { path: "/objects/DataObject0/data", op: "remove", oldValue: obj0.data }
 
       const { encoded, ...rest } = change
-      const decoded = serializer.decode(encoded!)
+      const decoded = decoder[id].decodePatch(encoded!)
       expect(rest).toMatchObject(patch)
       expect(rest).toMatchObject(decoded)
     })
@@ -213,7 +214,7 @@ describe("Change parent public property", () => {
       expect(id).toBe("client2")
       const patch = { path: "/objects/DataObject0/data", op: "add", value: obj0.data }
       const { encoded, ...rest } = change
-      const decoded = serializer.decode(encoded!)
+      const decoded = decoder[id].decodePatch(encoded!)
       expect(rest).toMatchObject(patch)
       expect(rest).toMatchObject(decoded)
     })
@@ -225,13 +226,8 @@ describe("Add CardObject for client1", () => {
   tester
   .onAction(() => c1.addCard("back", face.value, face.suit))
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
-    test(`${id} should get add change for schemaMap node keys`, () => {
-      schemaAddNodeKey(id, change, "Card0")
-    })
-  })
-  .trigger(2, (id: string, change: IEncodedJsonPatch) => {
     test(`${id} should get add change for schemaMap nodes`, () => {
-      schemaAddNode(id, change, [7, 6, 2, 1])
+      schemaAddNode(id, change, [7, 6, 2, "Card0"])
     })
   })
   .trigger(2, (id: string, change: IEncodedJsonPatch) => {
@@ -270,7 +266,7 @@ describe("Change parent for ard object", () => {
       const patch = { path: "/objects/Card0/face", op: "remove", oldValue: card0.face }
 
       const { encoded, ...rest } = change
-      const decoded = serializer.decode(encoded!)
+      const decoded = decoder[id].decodePatch(encoded!)
       expect(rest).toMatchObject(patch)
       expect(rest).toMatchObject(decoded)
     })
@@ -281,9 +277,16 @@ describe("Change parent for ard object", () => {
       const patch = { path: "/objects/Card0/face", op: "add", value: card0.face }
 
       const { encoded, ...rest } = change
-      const decoded = serializer.decode(encoded!)
+      const decoded = decoder[id].decodePatch(encoded!)
       expect(rest).toMatchObject(patch)
       expect(rest).toMatchObject(decoded)
     })
   }).run(unhandledTest)
+})
+
+describe("Compare serializer schema with client decoder", () => {
+  test(`should be equal all schemas`, () => {
+    expect(decoder.client1.schema).toEqual(decoder.client2.schema)
+    expect(decoder.client2.schema).toEqual(serializer.patchPack.schema)
+  })
 })
