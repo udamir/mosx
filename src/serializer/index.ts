@@ -19,6 +19,9 @@ export abstract class Serializer<T = any> {
   public onCreateNode(entry: ITreeNode, target: any) { /** */ }
   public onDeleteNode(entry: ITreeNode) { /** */ }
 
-  public abstract encode(patch: IReversibleJsonPatch, target: any): Buffer
-  public abstract decode(buffer: Buffer): IReversibleJsonPatch
+  public abstract encodeSnapshot(value: any): Buffer
+  public abstract decodeSnapshot(value: Buffer): any
+
+  public abstract encodePatch(patch: IReversibleJsonPatch, target: any): Buffer
+  public abstract decodePatch(buffer: Buffer): IReversibleJsonPatch
 }

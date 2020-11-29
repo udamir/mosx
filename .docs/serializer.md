@@ -38,7 +38,7 @@ Patch converted to array:
 
 ## **LightSerializer**
 
-Simple serializer based on messagePack and with static decodeMap. DecodeMap will added to snapshot and required for decoding. 
+Simple serializer based on messagePack and with static decodeMap. DecodeMap will added to encoded snapshot and required for decoding. 
 
 Patch converted to tuple array format, ```patch.path``` converted from string to bytes with indexes in static decode Map.
 The algoritms is following - patch consists of 2 parts: header and body:
@@ -72,164 +72,22 @@ patch.value and patch.oldValue also added to body array and encode with notepack
 
 ## **SchemaSerializer**
 
-The main difference from "light" version is that dynamic decode Map will be used (schema). With each new node in state tree schema must be updated accordingly. This serialize algorithm minimize size of encoded patch.
+This serializer based on [patchPack](https://github.com/udamir/patchpack) library. The main difference from "light" version is that dynamic decode Map will be used (schema). Schema will be updated by decoding snapshot and patches. This serialize algorithm minimize size of encoded patch.
 
 ::: warning
-This serialize algorithms is under testing.
+  ```privateMapValuePatch``` must be set as true.
 :::
 
 ### Schema format
 
-As in LightSerializer decodeMap included in snapshot with key ```"_"```.
+As in LightSerializer decodeMap included in encoded snapshot.
 
 ```ts
-  const tracker = Mosx.createTracker(state, { serializer: SchemaSerializer })
+  const tracker = Mosx.createTracker(state, { 
+    serializer: SchemaSerializer,
+    privateMapValuePatch: true
+  })
   const snapshot = tracker.snapshot()
-  const schema = snapshot._
-```
-
-This decodeMap (schema) is not static, so you need to apply all related patches. Schema includes array of types and array of nodes:
-
-```ts
-interface ISchema {
-  types: SchemaType[]
-  nodes: SchemaNode[]
-}
-```
-
-#### **Schema: types**
-Schema types - is tuple array of ```Mosx``` classes and ```@mx``` properties:
-```ts
-//   SchemaType = [ name,   props    ]
-type SchemaType = [ string, ...string[] ]
-```
-
-| index | name  | description     |
-| ----- | ----- | --------------- |
-| 0     | name  | Mosx class name |
-| 1+    | props | @mx properties  |
-
-#### **Schema: nodes**
-```ts
-//   SchemaNode = [ id,     type,   parent, name,            items? ]
-type SchemaNode = [ number, number, number, string | number, ...string[] ]
-```
-| index | name   | description                                  |
-| ----- | ------ | -------------------------------------------- |
-| 0     | id     | node id                                      |
-| 1     | type   | Array (-1), Map (-2), Mosx type Index (0+)   |
-| 2     | parent | parent node id                               |
-| 3     | index  | array index / map key index / property index |
-| 4+    | items  | map keys (if type === -2)                    |
-
-### Patch format
-
-Decode by [notepack.io](https://github.com/darrachequesne/notepack) patch has following format:
-```ts
-//   SchemaPatch = [ op,     id,     prop,   value/oldValue ]
-type SchemaPatch = [ number, number, number, any?, any? ]
-```
-
-There are 2 types of patches:
-- state patch
-- schema patch (types patch, nodes patch)
-  
-Zero array element ```op``` is used to set patch type (state or schema) and for patch.op converted to number:
-| patch.op  | state | schema nodes | schema types |
-| --------- | ----- | ------------ | ------------ |
-| "add"     | 0     | -3           | -6           |
-| "replace" | 1     | -2           | -5           |
-| "remove"  | 2     | -1           | -4           |
-
-#### State patch format:
-
-| index | name   | description                                                          |
-| ----- | ------ | -------------------------------------------------------------------- |
-| 0     | op     | patch.op                                                             |
-| 1     | id     | schema node id                                                       |
-| 2     | prop   | index of node type                                                   |
-| 3+    | values | patch.value (if not remove) and patch.oldValue (if reversable patch) |
-
-#### Schema patch format:
-
-| index | name     | description                              |
-| ----- | -------- | ---------------------------------------- |
-| 0     | op       | patch.op and patch type (nodes or types) |
-| 1     | index    | nodes (or types) array index             |
-| 2     | keyIndex | node (or type) array item                |
-| 3     | value    | patch.value (if not remove operation)    |
-
-### Encode example
-
-schema:
-```ts
-{
-  types: [
-//  [ 0: class     1+: properties   ]
-    [ 'SchemaMap', 'types', 'nodes' ], // 0 -> Schema type
-    [ 'State',     'clients' ],        // 1 -> State type
-    [ 'Client',    'name', "x", "y" ], // 2 -> Client type
-  ],
-  nodes: [
-//  [ id, type,            parent,               index      ]
-    [ 0,  1,  /* State */  -1, /* null */        -1 /* no index */  ],    // id=0 -> state (State)
-    [ 1,  -1, /* Array */  0,  /* "/" */         0 /* prop index */ ],    // id=1 -> state.clients (Array)
-    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0 /* array index */],     // id=2 -> state.clients[0] (Client)
-  ]
-}
-```
-source patch:
-```ts
-{
-  op: "add",                                // "add" -> 0
-  path: "/clients/0",                       // node id -> 2
-  value: { name: "client1", x: 50, y: 50 }  // type -> Client
-}
-```
-encoded patch: 
-```ts
-[
-  0,                    // op
-  2,                    // path
-  ["client1", 50, 50]   // value
-]
-```
-
-### Decode example
-
-schema:
-```ts
-{
-  types: [
-//  [ 0: class     1+: properties   ]
-    [ 'SchemaMap', 'types', 'nodes' ], // 0 -> Schema type
-    [ 'State',     'clients' ],        // 1 -> State type
-    [ 'Client',    'name', "x", "y" ], // 2 -> Client type
-  ],
-  nodes: [
-//  [ id, type,            parent,               name      ]
-    [ 0,  1,  /* State */  -1, /* null */        -1 /* no index */  ],    // id=0 -> state (State)
-    [ 1,  -1, /* Array */  0,  /* "/" */         0 /* prop index */ ],    // id=1 -> state.clients (Array)
-    [ 2,  2,  /* Client */ 1,  /* "/clients/" */ 0 /* array index */],     // id=2 -> state.clients[0] (Client)
-  ]
-}
-```
-encoded patch: 
-```ts
-[
-  0,                    // op -> "add"
-  2,                    // path -> type = Client, name = 0, parent.name = "clients"
-  ["client1", 50, 50]   // value -> Client props: ['name', "x", "y"]
-]
-```
-
-decoded patch:
-```ts
-{
-  op: "add",                                
-  path: "/clients/0",                     
-  value: { name: "client1", x: 50, y: 50 }  
-}
 ```
 
 ## Custom Serializer 
@@ -251,8 +109,12 @@ class CustomSerializer extends Serializer<T = any> {
     // on serializer create
   }
 
-  public onChange(change: IChange, parent: ITreeNode) {
-    // on stata change
+  public beforeChange(change: IChange, parent: ITreeNode) { 
+    // before sending patches to listeners
+  }
+
+  public afterChange(change: IChange, parent: ITreeNode) {
+    // after sending patches to listeners
   }
 
   public onCreateNode(entry: ITreeNode, target: any) {
@@ -263,12 +125,20 @@ class CustomSerializer extends Serializer<T = any> {
     // on delete tree node
   }
 
-  public encode(patch: IReversibleJsonPatch, target: any): Buffer {
-    // add encode algorithms
+  public encodeSnapshot(value: any): Buffer {
+    // add encode snapshot algorithms
   }
 
-  public decode(buffer: Buffer): IReversibleJsonPatch {
-    // add decode algorithms
+  public decodeSnapshot(value: Buffer): any {
+    // add decode snapshot algorithms
+  }
+
+  public encodePatch(patch: IReversibleJsonPatch, target: any): Buffer {
+    // add encode patch algorithms
+  }
+
+  public decodePatch(buffer: Buffer): IReversibleJsonPatch {
+    // add decode patch algorithms
   }
 }
 ```

@@ -1,111 +1,93 @@
-import { isObservable, ObservableMap, ObservableSet } from "mobx"
+import { isObservableMap, ObservableMap, ObservableSet } from "mobx"
 
-import { ITreeNode, IReversibleJsonPatch, Mosx, mx, IChange, IMosxTracker, IEncodedJsonPatch } from "../internal"
-import { PatchPack, ISchema, SchemaNode, SchemaType } from "patchpack"
+import { ITreeNode, IReversibleJsonPatch, Mosx, mx, IChange } from "../internal"
+import { PatchPack } from "patchpack"
 import { Serializer } from "."
 
-@mx.Object
-class Schema implements ISchema {
-  // all mosx types
-  @mx types: Array<SchemaType> = []
-  // state tree nodes
-  @mx nodes: Array<SchemaNode> = []
-}
-
 export class SchemaSerializer extends Serializer {
-  public tracker!: IMosxTracker<Schema>
   public patchPack!: PatchPack
   public deleted!: number
 
   public onCreate() {
-    // create schema map
-    const schema = new Schema()
-
-    this.patchPack = new PatchPack(schema)
     this.deleted = -1
 
+    this.patchPack = new PatchPack()
+
+    const { _types } = this.patchPack.schema as any
+
     // add mosx types to schema map
-    mx.$context.types.forEach(( { name, $mx } ) => {
-      const meta = mx.$context.meta.get(name)
+    mx.$context.types.forEach((type) => {
+      const meta = mx.$context.meta.get(type.name)
       if (!meta) { return }
-      this.patchPack.schema.addType(name, $mx.props.map((prop: any) => prop.key))
-    })
-
-    // add schema map key to state
-    this.root.constructor.$mx.props.push({ key: "_", type: "", hidden: false, getter: false })
-    Object.defineProperty(this.root, "_", { enumerable: false, writable: false, value: schema })
-  }
-
-  public broadcastPatch(patch: IEncodedJsonPatch, obj: any) {
-    // encode schema paches
-    patch.encoded = this.patchPack.encodeSchemaPatch(patch)
-
-    // forward patches to all listeners
-    this.listeneres.forEach((listener) => {
-      listener.handler(patch, obj, this.root)
+      // this.patchPack.schema.addType(type.name, type.$mx.props.map((prop: any) => prop.key), type)
+      const index = _types.length
+      _types.push({ name: type.name, props: type.$mx.props.map((prop: any) => prop.key), index, ref: type })
     })
   }
 
   public onCreateNode(entry: ITreeNode, target: any) {
     const schema = this.patchPack.schema
     const parentId = entry.parent ? entry.parent.id : -1
+    const parent = schema.getNode(parentId)
 
-    let patch
+    // if (parent && parent.type === MAP_NODE) {
+    //   parent.keys!.push(entry.path)
+    // }
+
+    const index = parent ? schema.getChildIndex(parent, entry.path) : -1
+
     if (target instanceof ObservableMap) {
       // add map node to schema
-      patch = schema.addMapNode(entry.id, parentId, entry.path, [...target.keys()])
+      schema.createNode(entry.id, parent, -2, entry.path, index)
+      // patch = schema.nodesAddMap(entry.id, parentId, entry.path, [...target.keys()])
     } else if (target instanceof ObservableSet) {
       // TODO add ObservableSet
     } else if (Array.isArray(target)) {
       // add array node to schema
-      patch = schema.addArrayNode(entry.id, parentId, entry.path)
+      schema.createNode(entry.id, parent, -1, entry.path, index)
     } else if (target instanceof Mosx) {
       // add mosx node to schema
-      patch = schema.addObjectNode(entry.id, entry.meta.type!, parentId, entry.path)
-    }
-
-    if (patch) {
-      this.broadcastPatch(patch, target)
+      const type = schema.typeByName(entry.meta.type!)!
+      schema.createNode(entry.id, parent, type, entry.path, index)
     }
   }
 
   public onDeleteNode(entry: ITreeNode) {
     if (this.deleted === -1) {
       this.deleted = entry.id
-    }
-  }
-
-  public beforeChange(change: IChange) {
-    const entry = this.nodes.get(change.object)!
-    if (change.object instanceof ObservableMap) {
-      // skip object keys
-      if (isObservable((change as any).newValue)) { return }
-
-      const schema = this.patchPack.schema
-      const key = (change as any).name
-
-      const node = schema.getNode(entry.id)!
-      if (!node.items.includes(key)) {
-        const patch = schema.addMapNodeKey(node.id, key)!
-        this.broadcastPatch(patch, change.object)
-      }
+      const node = this.patchPack.schema.getNode(this.deleted)!
+      this.patchPack.schema.deleteNode(node)
     }
   }
 
   public afterChange(change: IChange) {
     if (this.deleted >= 0) {
-      const schema = this.patchPack.schema
-      const patch = schema.deleteNode(this.deleted)!
-      this.broadcastPatch(patch, change.object)
       this.deleted = -1
+      this.patchPack.schema.clearDeleted()
     }
   }
 
-  public encode (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
-    return this.patchPack.encodePatch(patch)
+  public beforeChange(change: IChange, parent: ITreeNode) {
+    if (isObservableMap(change.object) && change.type === "add") {
+      const node = this.patchPack.schema.getNode(parent.id)
+      if (!node) { return }
+      node.keys!.push(change.name)
+    }
   }
 
-  public decode (buffer: Buffer) {
-    return this.patchPack.decodePatch(buffer, false)
+  public encodeSnapshot(value: any) {
+    return this.patchPack.encodeState(value, true, false)
+  }
+
+  public decodeSnapshot(buffer: Buffer) {
+    return this.patchPack.decodeState(buffer)
+  }
+
+  public encodePatch(patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
+    return this.patchPack.encodePatch(patch, false)
+  }
+
+  public decodePatch (buffer: Buffer) {
+    return this.patchPack.decodePatch(buffer)
   }
 }

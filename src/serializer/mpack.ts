@@ -1,11 +1,20 @@
-import * as notepack from "notepack.io"
+import { PatchPack } from "patchpack"
 
 import { ITreeNode, IReversibleJsonPatch } from "../internal"
 import { Serializer } from "."
+import { values } from "mobx"
 
 export class MPackSerializer extends Serializer {
 
-  public encode (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
+  public encodeSnapshot(value: any): Buffer {
+    return PatchPack.encode(values)
+  }
+
+  public decodeSnapshot(buffer: Buffer): any {
+    return PatchPack.decode(buffer)
+  }
+
+  public encodePatch (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
 
     const op = ["add", "replace", "remove"].indexOf(patch.op)
     const patchArr = [op, patch.path]
@@ -18,11 +27,11 @@ export class MPackSerializer extends Serializer {
       patchArr.push(patch.oldValue)
     }
 
-    return notepack.encode(patchArr)
+    return PatchPack.encode(patchArr)
   }
 
-  public decode (buffer: Buffer): IReversibleJsonPatch {
-    const patchArr = notepack.decode<any[]>(buffer).reverse()
+  public decodePatch (buffer: Buffer): IReversibleJsonPatch {
+    const patchArr = PatchPack.decode(buffer).reverse()
 
     const patch: IReversibleJsonPatch = {
       op: ["add", "replace", "remove"][patchArr.pop()] as any,

@@ -42,7 +42,7 @@ const mosxSnapshot = (target: any, params: ISnapshotParams): ISnapshot | undefin
   if (meta.hidden && !tagsArr.find((tag) => objTags.has(tag))) { return }
 
   // filtered visible props
-  const props = meta.props.filter((prop) => !prop.hidden || tagsArr.find((tag) => objTags.has(tag)))
+  const props = meta.props!.filter((prop) => !prop.hidden || tagsArr.find((tag) => objTags.has(tag)))
 
   // create snapshot object
   const result: ISnapshot = {}

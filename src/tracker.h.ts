@@ -21,7 +21,6 @@ export interface IEncodedJsonPatch extends IReversibleJsonPatch {
 export type MosxPatchListener<T> = (patch: IEncodedJsonPatch, obj: any, root: T) => void
 
 export interface IMosxSnapshotParams {
-  // serializer?: string
   tags?: string | string[]
   spy?: boolean
 }
@@ -34,11 +33,12 @@ export interface IMosxPatchParams extends IMosxSnapshotParams {
 export interface IMosxTrackerParams {
   serializer?: any
   reversible?: boolean
+  privateMapValuePatch?: boolean
 }
 
 export interface IMosxTracker<T> {
   onPatch: (listener: MosxPatchListener<T>, params?: IMosxPatchParams) => IDisposer
-  snapshot(params?: IMosxSnapshotParams): { [key: string]: any }
+  snapshot(params?: IMosxSnapshotParams): { [key: string]: any } | Buffer
   serializer?: Serializer
   dispose(): void
 }

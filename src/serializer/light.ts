@@ -1,7 +1,8 @@
-import * as notepack from "notepack.io"
+import { PatchPack } from "patchpack"
 
 import { ITreeNode, IReversibleJsonPatch, mx } from "../internal"
 import { Serializer } from "."
+import { values } from "mobx"
 
 export interface ILightSchema {
   [name: string]: ISchemaItem
@@ -24,6 +25,7 @@ export interface IPropSchema {
 }
 
 export class LightSerializer extends Serializer {
+  private _schema: ILightSchema = {}
 
   public onCreate() {
     const context = mx.$context
@@ -46,8 +48,6 @@ export class LightSerializer extends Serializer {
       }
     }
 
-    const schemaMap: ILightSchema = {}
-
     context.types.forEach(( { name, $mx } ) => {
       const propSchema: IPropsSchema = {}
 
@@ -58,20 +58,16 @@ export class LightSerializer extends Serializer {
       const meta = context.meta.get(name)
       if (!meta) { return }
 
-      schemaMap[name] = {
+      this._schema[name] = {
         index: meta.index,
         parent: meta.parent,
         props: $mx.props.map((prop: any) => prop.key),
         schema: propSchema,
       }
     })
-
-    // add schema map key to state
-    this.root.constructor.$mx.props.push({ key: "_", type: "", hidden: false, getter: false })
-    Object.defineProperty(this.root, "_", { enumerable: false, writable: false, value: schemaMap })
   }
 
-  public entryTypePath (entry?: ITreeNode): string[] {
+  private entryTypePath (entry?: ITreeNode): string[] {
     const pathArr = []
     while (entry) {
       pathArr.push(entry.meta && entry.meta.type || "")
@@ -100,7 +96,7 @@ export class LightSerializer extends Serializer {
   * "*" - encoded with notepack
   */
 
-  public encode(patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
+  public encodePatch(patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
     const pathTypes = this.entryTypePath(entry)
 
     const op = ["add", "replace", "remove"].indexOf(patch.op)
@@ -126,12 +122,12 @@ export class LightSerializer extends Serializer {
     if (patch.op !== "add" && "oldValue" in patch) {
       pathParams.push(patch.oldValue)
     }
-    const paramsBuffer = Buffer.from(notepack.encode(pathParams))
+    const paramsBuffer = Buffer.from(PatchPack.encode(pathParams))
 
     return Buffer.concat([buffer, paramsBuffer])
   }
 
-  public typePropIndex (type: string, prop: string) {
+  private typePropIndex (type: string, prop: string) {
 
     const meta = mx.$context.meta.get(type)
     if (!meta) {
@@ -144,14 +140,14 @@ export class LightSerializer extends Serializer {
     return [meta.index, index]
   }
 
-  public decode (buffer: Buffer): IReversibleJsonPatch {
+  public decodePatch (buffer: Buffer): IReversibleJsonPatch {
     const opIndex = buffer.readInt8(0)
     const pathLength = buffer.readInt8(1)
 
     const pathBuffer = buffer.slice(2, pathLength + 2)
     const paramsBuffer = buffer.slice(pathLength + 2)
 
-    const params = notepack.decode<any[]>(paramsBuffer).reverse()
+    const params = PatchPack.decode(paramsBuffer).reverse()
 
     let path = ""
     for (let i = 0; i < pathBuffer.length; i++) {
@@ -184,7 +180,7 @@ export class LightSerializer extends Serializer {
     return patch
   }
 
-  public propName(typeIndex: number, propIndex: number) {
+  private propName(typeIndex: number, propIndex: number) {
     const context = mx.$context
     const typeName = context.index[typeIndex]
     const meta = context.meta.get(typeName)
@@ -200,5 +196,15 @@ export class LightSerializer extends Serializer {
     }
 
     return prop.key
+  }
+
+  public encodeSnapshot(value: any): Buffer {
+    return PatchPack.encode([this._schema, values])
+  }
+
+  public decodeSnapshot(buffer: Buffer): any {
+    const [schema, snapshot] = PatchPack.decode(buffer)
+    this._schema = schema
+    return snapshot
   }
 }

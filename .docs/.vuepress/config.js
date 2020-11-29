@@ -26,7 +26,8 @@ module.exports = {
         // algolia docsearch options for current locale
         algolia: {},
         nav: [
-          { text: "Github", link: "http://github.com/udamir/mosx" }
+          // { text: "patchPack", link: "/patchpack/" },
+          { text: "Github", link: "http://github.com/udamir/mosx" },
         ],
         sidebar: {
           '/': [
@@ -35,7 +36,7 @@ module.exports = {
             'mosx-api',
             'tracker-api',
             'serializer',
-            'examples',
+            'examples'
           ],  
         },
       },

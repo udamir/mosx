@@ -234,7 +234,7 @@ describe("Add private object to public map", () => {
   .trigger((id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get add change for map property`, () => {
       expect(id).toBe("client2")
-      expect(change).toMatchObject({ path: "/prop1/" + key, op: "add", value: obj,  })
+      expect(change).toMatchObject({ path: "/prop1/" + key, op: "add", value: obj  })
     })
   }).run(unhandledTest)
 })
@@ -322,9 +322,9 @@ describe("Add tag of client1 to state", () => {
     })
   })
   .trigger((id: string, change: IReversibleJsonPatch) => {
-    test(`${id} should get replace change for private object of public map propery`, () => {
+    test(`${id} should get add change for private object of public map propery`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/prop1/private", op: "replace", value: view2.prop1.private })
+      expect(change).toMatchObject({ path: "/prop1/private", op: "add", value: view2.prop1.private })
     })
   }).run(unhandledTest)
 })
@@ -357,9 +357,9 @@ describe("Remove tag of client1 to state", () => {
     })
   })
   .trigger((id: string, change: IReversibleJsonPatch) => {
-    test(`${id} should get replace change for private object of public map propery`, () => {
+    test(`${id} should remove change for private object of public map propery`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/prop1/private", op: "replace", oldValue: view2.prop1.private })
+      expect(change).toMatchObject({ path: "/prop1/private", op: "remove", oldValue: view2.prop1.private })
     })
   })
   .run(unhandledTest)
@@ -372,9 +372,9 @@ describe("Add tag of client1 to private object in map", () => {
   tester
   .onAction(() => Mosx.addTag(p, "1"))
   .trigger((id: string, change: IReversibleJsonPatch) => {
-    test(`${id} should get replace change for private object of public map propery`, () => {
+    test(`${id} should get add change for private object of public map propery`, () => {
       expect(id).toBe("client1")
-      expect(change).toMatchObject({ path: "/prop1/private", op: "replace", value: view2.prop1.private })
+      expect(change).toMatchObject({ path: "/prop1/private", op: "add", value: view2.prop1.private })
     })
   }).run(unhandledTest)
 })

@@ -12,16 +12,16 @@ class Player extends Mosx {
 }
 ```
 
-::: warning
-it's not possible to set parent or tags in constructor if @mx.Object was used
-:::
-
 ## Mosx.inject
 
 Object can be converted to Mosx object via inject method:
 ```ts
 static inject(target: any, owner?: Mosx, tags: string | string[] = []): void
 ```
+
+::: tip
+you can use ```Mosx.inject``` to set parent or tags in constructor if @mx.Object was used
+:::
 
 Example: 
 ```ts
