@@ -1,42 +1,51 @@
-import * as notepack from "notepack.io"
+import { PatchPack } from "patchpack"
 
-import { MosxContext } from "../context"
-import { IReversibleJsonPatch } from "../tracker"
+import { ITreeNode, IReversibleJsonPatch } from "../internal"
+import { Serializer } from "."
+import { values } from "mobx"
 
-export const decodeMap = (context: MosxContext) => {
-  return {}
-}
+export class MPackSerializer extends Serializer {
 
-export const encode = (context: MosxContext, patch: IReversibleJsonPatch, pathItems: string[]): Buffer => {
-  const op = ["add", "replace", "remove"].indexOf(patch.op)
-  const patchArr = [op, patch.path]
-
-  if ("value" in patch) {
-    patchArr.push(patch.value)
+  public encodeSnapshot(value: any): Buffer {
+    return PatchPack.encode(values)
   }
 
-  if ("oldValue" in patch) {
-    patchArr.push(patch.oldValue)
+  public decodeSnapshot(buffer: Buffer): any {
+    return PatchPack.decode(buffer)
   }
 
-  return notepack.encode(patchArr)
-}
+  public encodePatch (patch: IReversibleJsonPatch, entry: ITreeNode): Buffer {
 
-export const decode = (context: MosxContext, buffer: Buffer): IReversibleJsonPatch => {
-  const patchArr = notepack.decode<any[]>(buffer).reverse()
+    const op = ["add", "replace", "remove"].indexOf(patch.op)
+    const patchArr = [op, patch.path]
 
-  const patch: IReversibleJsonPatch = {
-    op: ["add", "replace", "remove"][patchArr.pop()] as any,
-    path: patchArr.pop(),
+    if ("value" in patch) {
+      patchArr.push(patch.value)
+    }
+
+    if ("oldValue" in patch) {
+      patchArr.push(patch.oldValue)
+    }
+
+    return PatchPack.encode(patchArr)
   }
 
-  if (patchArr.length && patch.op !== "remove") {
-    patch.value = patchArr.pop()
-  }
+  public decodePatch (buffer: Buffer): IReversibleJsonPatch {
+    const patchArr = PatchPack.decode(buffer).reverse()
 
-  if (patchArr.length && patch.op !== "add") {
-    patch.oldValue = patchArr.pop()
-  }
+    const patch: IReversibleJsonPatch = {
+      op: ["add", "replace", "remove"][patchArr.pop()] as any,
+      path: patchArr.pop(),
+    }
 
-  return patch
+    if (patchArr.length && patch.op !== "remove") {
+      patch.value = patchArr.pop()
+    }
+
+    if (patchArr.length && patch.op !== "add") {
+      patch.oldValue = patchArr.pop()
+    }
+
+    return patch
+  }
 }

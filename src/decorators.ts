@@ -1,6 +1,6 @@
 import { observable, computed, IComputed } from "mobx"
-import { Mosx } from "./mosx"
 import { MosxContext } from "./context"
+import { Mosx } from "./mosx"
 
 /**
  * Decorator for observable and computed properties in Mosx

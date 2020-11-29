@@ -1,6 +1,6 @@
 import { computed } from "mobx"
 
-import { MosxTracker, IMosxTracker, IMosxTrackerParams } from "./tracker"
+import { MosxTracker, IMosxTracker, IMosxTrackerParams } from "./internal"
 import { DefinitionType } from "./decorators"
 import { snapshot } from "./snapshot"
 import { MosxAdmin } from "./admin"
@@ -9,7 +9,7 @@ const mosx = Symbol("mosx")
 
 export interface IMeta {
   type?: string
-  props: IMetaProperty[]
+  props?: IMetaProperty[]
   hidden?: boolean
 }
 
@@ -33,6 +33,12 @@ export abstract class Mosx {
   }
 
   public static inject(target: any, owner?: any, tags: string | string[] = []) {
+    if ((target instanceof Mosx)) {
+      Mosx.setParent(owner)
+      Mosx.addTag(target, tags)
+      return
+    }
+
     if (owner && !(owner instanceof Mosx)) {
       throw Error("Owner must be Mosx object!")
     }
@@ -43,7 +49,7 @@ export abstract class Mosx {
 
     // make all mx computed observable
     const classParams = Mosx.meta(target)
-    classParams.props.filter(({ getter }) => getter).forEach(({ key }) => {
+    classParams.props!.filter(({ getter }) => getter).forEach(({ key }) => {
       const propDispose = computed(() => target[key]).observe((change) => {
         if (tree.tracker) {
           tree.tracker.computedChange(target, { ...change, name: key, object: target })

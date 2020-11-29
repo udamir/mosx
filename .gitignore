@@ -3,5 +3,4 @@ node_modules
 .vscode
 dist
 .vuepress
-.docs
-.temp
+temp
