@@ -1,12 +1,18 @@
 import { isObservableMap, ObservableMap, ObservableSet } from "mobx"
 
-import { ITreeNode, IReversibleJsonPatch, Mosx, mx, IChange } from "../internal"
+import { ITreeNode, IReversibleJsonPatch, Mosx, mx, IChange, MosxTracker } from "../internal"
 import { PatchPack } from "patchpack"
 import { Serializer } from "."
 
 export class SchemaSerializer extends Serializer {
   public patchPack!: PatchPack
   public deleted!: number
+
+  constructor (tracker: MosxTracker) {
+    super(tracker)
+
+    tracker.privateMapValuePatch = true
+  }
 
   public onCreate() {
     this.deleted = -1

@@ -37,7 +37,7 @@ Mosx.addTag(state, "123")
 const c1 = (id: string, value: any): any => id === "client2" ? undefined : value
 const c2 = (id: string, value: any): any => id === "client1" ? undefined : value
 
-const stateTracker = Mosx.createTracker(state, { serializer: SchemaSerializer, reversible: true, privateMapValuePatch: true })
+const stateTracker = Mosx.createTracker(state, { serializer: SchemaSerializer, reversible: true })
 const tester = new MosxTester(stateTracker)
 
 const decoder: any = {

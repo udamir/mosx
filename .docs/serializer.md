@@ -75,7 +75,7 @@ patch.value and patch.oldValue also added to body array and encode with notepack
 This serializer based on [patchPack](https://github.com/udamir/patchpack) library. The main difference from "light" version is that dynamic decode Map will be used (schema). Schema will be updated by decoding snapshot and patches. This serialize algorithm minimize size of encoded patch.
 
 ::: warning
-  ```privateMapValuePatch``` must be set as true.
+  tracker parameter ```privateMapValuePatch = true``` will be applied.
 :::
 
 ### Schema format
@@ -84,8 +84,8 @@ As in LightSerializer decodeMap included in encoded snapshot.
 
 ```ts
   const tracker = Mosx.createTracker(state, { 
-    serializer: SchemaSerializer,
-    privateMapValuePatch: true
+    serializer: SchemaSerializer
+    //  privateMapValuePatch: true
   })
   const snapshot = tracker.snapshot()
 ```

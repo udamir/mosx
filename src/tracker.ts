@@ -16,7 +16,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
   public serializer?: Serializer
   public reversible: boolean
-  public privateObjectPatch: boolean
+  public privateMapValuePatch: boolean
 
   constructor(object: T, params: IMosxTrackerParams = {}) {
     if (Mosx.getParent(object)) {
@@ -24,7 +24,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     }
     this.root = object
     this.reversible = params.reversible || false
-    this.privateObjectPatch = params.privateMapValuePatch || false
+    this.privateMapValuePatch = params.privateMapValuePatch || false
     this.serializer = params.serializer && new params.serializer(this)
     this.observeRecursively(this.root, undefined, "")
   }
@@ -107,7 +107,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
       if (entry.hidden) {
         // handle private object
-        const op: JsonPatchOp = !this.privateObjectPatch && entry.parent?.meta?.type === "map"
+        const op: JsonPatchOp = !this.privateMapValuePatch && entry.parent?.meta?.type === "map"
           ? nowVisible ? "add" : "remove"
           : "replace"
 
@@ -168,7 +168,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       if (filter.size && !filter.has("add")) { continue }
       if (this.isHidden(parent, tags)) { continue }
       // check if object is visible for listener
-      if (!this.privateObjectPatch && this.isHidden(entry, tags)) { continue }
+      if (!this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "add",
@@ -230,7 +230,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       if (filter.size && !filter.has("remove")) { continue }
       if (this.isHidden(parent, tags)) { continue }
       // check if object is visible for listener
-      if (!this.privateObjectPatch && this.isHidden(entry, tags, false)) { continue }
+      if (!this.privateMapValuePatch && this.isHidden(entry, tags, false)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "remove",
