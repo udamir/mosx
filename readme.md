@@ -8,7 +8,7 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 - Multiple views of the same state (private parts supported)
 - Runtime views configuration
 - Patch ([JsonPatch](http://jsonpatch.com/) format) and snapshot generation for each view
-- Embeded patch serializer with compression  
+- Embeded patch serializer with compression based on [PatchPack](https://github.com/udamir/patchpack)
 - Custom schema serialization support
 - Typescript syntax support out of the box
 - Works perfect with [MagX](https://github.com/udamir/magx) server
