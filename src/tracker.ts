@@ -154,9 +154,9 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.processChange(change, entry)
   }
 
-  private isHidden (node: ITreeNode, tags: string[], deep = true): boolean {
+  private isHidden (node: ITreeNode, tags: string[]): boolean {
     return node.hidden && !this.tagExist(tags, node.tags)
-      || !deep || node.parent && this.isHidden(node.parent, tags) || false
+      || node.parent && this.isHidden(node.parent, tags) || false
   }
 
   private processAddChange(change: IChange, parent: ITreeNode, path: string) {
@@ -230,7 +230,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       if (filter.size && !filter.has("remove")) { continue }
       if (this.isHidden(parent, tags)) { continue }
       // check if object is visible for listener
-      if (!this.privateMapValuePatch && this.isHidden(entry, tags, false)) { continue }
+      if (!this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "remove",
