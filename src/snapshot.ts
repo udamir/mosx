@@ -10,6 +10,7 @@ export interface ISnapshot {
 export interface ISnapshotParams {
   tags?: string | string[]
   objTags?: Set<string>
+  spy?: boolean
 }
 
 export const snapshot = (target: any, params: ISnapshotParams): any => {
@@ -32,17 +33,17 @@ export const compressedSnapshot = (target: any, params: ISnapshotParams): any =>
 
 const mosxSnapshot = (target: any, params: ISnapshotParams): ISnapshot | undefined => {
 
-  const { tags = [], objTags = Mosx.getTags(target) || new Set() } = params
+  const { tags = [], objTags = Mosx.getTags(target) || new Set(), spy = false } = params
   const tagsArr = !Array.isArray(tags) ? [tags] : tags
 
   // object props
   const meta = Mosx.meta(target)
 
   // check if object is visible for listner
-  if (meta.hidden && !tagsArr.find((tag) => objTags.has(tag))) { return }
+  if (!spy && meta.hidden && !tagsArr.find((tag) => objTags.has(tag))) { return }
 
   // filtered visible props
-  const props = meta.props!.filter((prop) => !prop.hidden || tagsArr.find((tag) => objTags.has(tag)))
+  const props = meta.props!.filter((prop) => spy || !prop.hidden || tagsArr.find((tag) => objTags.has(tag)))
 
   // create snapshot object
   const result: ISnapshot = {}

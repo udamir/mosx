@@ -70,10 +70,13 @@ Return serialized snapshot if serialized is defined, if not - return Mosx.getSna
 ```ts
 export interface IMosxSnapshotParams {
   tags?: string | string[]
+  spy?: boolean
 }
 ```
 
 Set access ```tags``` parameter to get snapshot with private objects/properties.
+
+Set ```spy``` as true if you need to get full snapshot including all private objects/properties
 
 ## tracker.onPatch
 
@@ -88,6 +91,7 @@ export interface IMosxPatchParams {
   tags?: string | string[]
   filter?: JsonPatchOp | JsonPatchOp[]
   reversible?: boolean
+  spy?: boolean
 }
 ```
 
@@ -104,6 +108,7 @@ export interface IReversibleJsonPatch {
   oldValue?: any // only if reversible enabled
 }
 ```
+Set ```spy``` as true if you need to recieve all patches including private objects/properties
 
 ### tracker.dispose
 

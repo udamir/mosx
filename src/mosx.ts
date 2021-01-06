@@ -89,9 +89,9 @@ export abstract class Mosx {
     }
   }
 
-  public static getSnapshot(target: any, tags?: string | string[]) {
+  public static getSnapshot(target: any, tags?: string | string[], spy = false) {
     tags = Array.isArray(tags) ? tags : tags && [tags] || undefined
-    return snapshot(target, { tags })
+    return snapshot(target, { tags, spy })
   }
 
   public static createTracker<T>(target: T, params?: IMosxTrackerParams): IMosxTracker<T> {

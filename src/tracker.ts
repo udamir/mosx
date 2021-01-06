@@ -51,7 +51,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
   }
 
   public snapshot(params: IMosxSnapshotParams): any {
-    const state = Mosx.getSnapshot(this.root, params && params.tags)
+    const state = Mosx.getSnapshot(this.root, params?.tags, params?.spy)
     return this.serializer ? this.serializer.encodeSnapshot(state) : state
   }
 
@@ -80,7 +80,10 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     if (!props.length && !entry.hidden) { return }
 
-    for (const { handler: listener, tags, reversible, filter } of this.listeners.values()) {
+    for (const { handler: listener, tags, reversible, filter, spy } of this.listeners.values()) {
+      // spy don't need updates 
+      if (spy) { continue }
+
       // check if listeners already got this patch
       let patchedObjects = this.patchedObjects.get(listener)
       if (!patchedObjects) {
@@ -164,16 +167,16 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this._adding = true
     const entry = this.observeRecursively(change.newValue, parent, change.name) || parent
     this._adding = false
-    for (const { handler, tags, filter } of this.listeners.values()) {
+    for (const { handler, tags, filter, spy } of this.listeners.values()) {
       if (filter.size && !filter.has("add")) { continue }
-      if (this.isHidden(parent, tags)) { continue }
+      if (!spy && this.isHidden(parent, tags)) { continue }
       // check if object is visible for listener
-      if (!this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
+      if (!spy && !this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "add",
         path: path + change.name,
-        value: snapshot(change.newValue, { tags }),
+        value: snapshot(change.newValue, { tags, spy }),
       }
 
       if (this.serializer) {
@@ -197,20 +200,20 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     if (parent.meta?.props && !props.find((prop) => prop.key === key)) { return }
     const hidden = parent.hidden || !!props.find((prop) => prop.key === key && !!prop.hidden)
 
-    for (const { handler, tags, reversible, filter } of this.listeners.values()) {
+    for (const { handler, tags, reversible, filter, spy } of this.listeners.values()) {
       if (filter.size && !filter.has("replace")) { continue }
-      if (this.isHidden(parent, tags)) { continue }
+      if (!spy && this.isHidden(parent, tags)) { continue }
       // check if object and field are visible for listener
-      if (hidden && !this.tagExist(tags, entry.tags)) { continue }
+      if (!spy && hidden && !this.tagExist(tags, entry.tags)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "replace",
         path: path + key,
-        value: snapshot(change.newValue, { tags }),
+        value: snapshot(change.newValue, { tags, spy }),
       }
 
       if (reversible) {
-        patch.oldValue = snapshot(change.oldValue, { tags })
+        patch.oldValue = snapshot(change.oldValue, { tags, spy })
       }
 
       if (this.serializer) {
@@ -226,11 +229,11 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
     const entry = this.unobserveRecursively(change.oldValue) || parent
 
-    for (const { handler, tags, reversible, filter } of this.listeners.values()) {
+    for (const { handler, tags, reversible, filter, spy } of this.listeners.values()) {
       if (filter.size && !filter.has("remove")) { continue }
-      if (this.isHidden(parent, tags)) { continue }
+      if (!spy && this.isHidden(parent, tags)) { continue }
       // check if object is visible for listener
-      if (!this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
+      if (!spy && !this.privateMapValuePatch && this.isHidden(entry, tags)) { continue }
 
       const patch: IEncodedJsonPatch = {
         op: "remove",
@@ -238,7 +241,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
       }
 
       if (reversible) {
-        patch.oldValue = snapshot(change.oldValue, { tags })
+        patch.oldValue = snapshot(change.oldValue, { tags, spy })
       }
 
       if (this.serializer) {
@@ -254,9 +257,9 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     change.removed.forEach((item: any) => {
       const entry = this.unobserveRecursively(item) || parent
 
-      for (const { handler, tags, reversible, filter } of this.listeners.values()) {
+      for (const { handler, tags, reversible, filter, spy } of this.listeners.values()) {
         if (filter.size && !filter.has("remove")) { continue }
-        if (this.isHidden(parent, tags)) { continue }
+        if (!spy && this.isHidden(parent, tags)) { continue }
 
         const patch: IEncodedJsonPatch = {
           op: "remove",
@@ -264,7 +267,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
         }
 
         if (reversible) {
-          patch.oldValue = (!entry.hidden || this.tagExist(tags, entry.tags)) ? snapshot(item, { tags }) : undefined
+          patch.oldValue = (spy || !entry.hidden || this.tagExist(tags, entry.tags)) ? snapshot(item, { tags, spy }) : undefined
         }
 
         if (this.serializer) {
@@ -279,15 +282,15 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
 
       const entry = this.observeRecursively(item, parent, "" + (change.index + idx)) || parent
 
-      for (const { handler, tags, filter } of this.listeners.values()) {
+      for (const { handler, tags, filter, spy } of this.listeners.values()) {
 
         if (filter.size && !filter.has("add")) { continue }
-        if (this.isHidden(parent, tags)) { continue }
+        if (!spy && this.isHidden(parent, tags)) { continue }
 
         const patch: IEncodedJsonPatch = {
           op: "add",
           path: path + change.index,
-          value: snapshot(item, { tags }),
+          value: snapshot(item, { tags, spy }),
         }
 
         if (this.serializer) {

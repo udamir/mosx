@@ -78,7 +78,7 @@ Set parent for Mosx object
 
 Get snapshot of Mosx object
 ```ts
-  static getSnapshot(target: Mosx, tags?: string | string[]): any 
+  static getSnapshot(target: Mosx, tags?: string | string[], spy = false): any 
 ```
 
 ## Mosx.createTracker
