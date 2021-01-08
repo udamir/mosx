@@ -158,8 +158,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
   }
 
   private isHidden (node: ITreeNode, tags: string[]): boolean {
-    return node.hidden && !this.tagExist(tags, node.tags)
-      || node.parent && this.isHidden(node.parent, tags) || false
+    return !this.tagExist(tags, node.tags) && (node.parent ? this.isHidden(node.parent, tags) : node.hidden)
   }
 
   private processAddChange(change: IChange, parent: ITreeNode, path: string) {
