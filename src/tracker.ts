@@ -158,7 +158,13 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
   }
 
   private isHidden (node: ITreeNode, tags: string[]): boolean {
-    return !this.tagExist(tags, node.tags) && (node.parent ? this.isHidden(node.parent, tags) : node.hidden)
+    while (node) {
+      if (node.hidden && !this.tagExist(tags, node.tags)) {
+        return true
+      }
+      node = node.parent as ITreeNode
+    }
+    return false
   }
 
   private processAddChange(change: IChange, parent: ITreeNode, path: string) {
@@ -391,7 +397,7 @@ export class MosxTracker<T = any> implements IMosxTracker<T> {
     this.nodes.set(value, entry)
 
     // notify serializer
-    this.serializer && this.serializer.onCreateNode(entry, value)
+    this.serializer?.onCreateNode(entry, value)
 
     // add default parent (root) to mosx object tagsTree
     if (value !== this.root && value instanceof Mosx && !Mosx.getParent(value)) {
