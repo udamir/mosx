@@ -61,7 +61,7 @@ export interface ITreeNode {
   parent: ITreeNode | undefined
   meta: IMeta
   hidden: boolean
-  tags: string[]
+  tags: Set<string> | null
   dispose: IDisposer
 }
 

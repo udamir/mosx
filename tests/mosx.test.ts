@@ -77,7 +77,9 @@ describe("Replace public property with private object", () => {
 describe("Replace private property", () => {
   const value = "test value"
   tester
-  .onAction(() => state.pprop = value)
+  .onAction(() => {
+    state.pprop = value
+  })
   .trigger((id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get replace change for computed property`, () => {
       expect(id).toBe("client1")
@@ -167,6 +169,19 @@ describe("Remove private object from public array", () => {
   .trigger(2, (id: string, change: IReversibleJsonPatch) => {
     test(`${id} should get remove change for array property`, () => {
       expect(change).toMatchObject({ path: "/prop1/0", op: "remove", oldValue: c2(id, obj) })
+    })
+  }).run(unhandledTest)
+})
+
+describe("Set private property to array", () => {
+  tester
+  .onAction(() => {
+    state.pprop1 = []
+  })
+  .trigger((id: string, change: IReversibleJsonPatch) => {
+    test(`${id} should get replace change for array property`, () => {
+      expect(id).toBe("client2")
+      expect(change).toEqual({ path: "/pprop1", op: "replace", value: [] })
     })
   }).run(unhandledTest)
 })
