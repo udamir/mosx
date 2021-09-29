@@ -1,6 +1,6 @@
 {
   "name": "mosx",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "Multiview observable state management engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
