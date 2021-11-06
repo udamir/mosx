@@ -34,7 +34,7 @@ https://udamir.github.io/mosx/
 
 ## Examples project
 
-The easiest way to try out Mosx is using the magx-examples project:
+The easiest way to try out Mosx is using the [magx-examples](https://github.com/udamir/magx-examples) project:
 ```
 git clone https://github.com/udamir/magx-examples.git
 cd magx-examples
