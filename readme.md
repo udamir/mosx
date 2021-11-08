@@ -15,7 +15,7 @@ Multiview observable state management engine based on [MobX](https://mobx.js.org
 
 ## Concept
 
-Central in mosx is the concept of a state tree. The state tree consists of mutable objects, arrays and maps. Every object and property of state tree can be public or private. Public object's/properties can be tracing by all listeners, but private are available only for listeners with access. So this means that every listener can have their own view of the same state tree. Access to private object/properties can be updated in real-time.
+Central in mosx is the concept of a state tree. The state tree consists of mutable objects, arrays and maps. Every object and property of state tree can be public or private. Public object's/properties can be traced by all listeners, but private are available only for listeners with access. So this means that every listener can have their own view of the same state tree. Access to private object/properties can be updated in real-time.
 
 On each mutation of state automatically generate patch for all listeners in ([JsonPatch](http://jsonpatch.com/) format. Patch can be encoded via embedded serializers, or with custom serializer implementation. Snapshot of state tree is also available for every listener.
 
