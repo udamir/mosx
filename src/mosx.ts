@@ -32,11 +32,11 @@ export abstract class Mosx {
     return instance && instance[mosx] && instance[mosx] instanceof MosxAdmin
   }
 
-  public static inject(target: any, owner?: any, tags: string | string[] = []) {
+  public static inject(target: any, owner?: any, tags: string | string[] = []): Mosx {
     if ((target instanceof Mosx)) {
       Mosx.setParent(owner)
       Mosx.addTag(target, tags)
-      return
+      return target
     }
 
     if (owner && !(owner instanceof Mosx)) {
@@ -58,6 +58,7 @@ export abstract class Mosx {
       tree.disposers.push(propDispose)
     })
     Mosx.addTag(target, tags)
+    return target as Mosx
   }
 
   public static new(Class: new (...args: any[]) => any, parent?: any, tags: any = []) {
@@ -86,6 +87,8 @@ export abstract class Mosx {
   public static setParent(target: any, owner?: any) {
     if (target instanceof Mosx) {
       target[mosx].setParent(owner && owner[mosx])
+    } else {
+      Mosx.inject(target, owner)
     }
   }
 
@@ -115,10 +118,11 @@ export abstract class Mosx {
   }
 
   public static addTag(target: any, tags: string | string[]) {
-    if (!(target instanceof Mosx)) {
-      throw Error("Tags can be added only to Mosx object!")
+    if (target instanceof Mosx) {
+      target[mosx].addTag(tags)
+    } else {
+      Mosx.inject(target, undefined, tags)
     }
-    target[mosx].addTag(tags)
   }
 
   public static deleteTag(target: any, id: string) {

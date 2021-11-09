@@ -13,7 +13,9 @@ module.exports = {
   //     description: 'State management framework'
   //   }
   // },
+  theme: 'default-prefers-color-scheme',
   themeConfig: {
+    prefersTheme: 'dark',
     locales: {
       '/': {
         // text for the language dropdown

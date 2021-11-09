@@ -16,7 +16,7 @@ class Player extends Mosx {
 
 Object can be converted to Mosx object via inject method:
 ```ts
-static inject(target: any, owner?: Mosx, tags: string | string[] = []): void
+static inject(target: any, owner?: Mosx, tags: string | string[] = []): Mosx
 ```
 
 ::: tip
@@ -73,6 +73,10 @@ Set parent for Mosx object
 ```ts
   static setParent(target: Mosx, owner?: Mosx)
 ```
+
+::: tip
+```Mosx.setParent``` also convert object to Mosx
+:::
 
 ## Mosx.getSnapshot
 
@@ -134,8 +138,12 @@ Get tags of state tree node (Mosx object)
 
 Add tags to state tree node (Mosx object)
 ```ts
-  static addTag(target: Mosx, tags: string | string[]) 
+  static addTag(target: any, tags: string | string[]) 
 ```
+
+::: tip
+```Mosx.addTag``` also convert target to Mosx
+:::
 
 ## Mosx.deleteTag
 
